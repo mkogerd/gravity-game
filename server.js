@@ -17,9 +17,14 @@ app.get('/canvas.js', (req, res) => {
 // set up connection	
 io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
-	let player = new Player(15,15,10, 'blue', socket.id);
+	// Create new particle and hazard for player
+	const color = colors[Math.floor(Math.random() * colors.length)];
+	let player = new Player(15, 15, 10, color, socket.id);
+	let hazard = spawnHazard(socket.id, color);
+
 	players.push(player);
 	particles.push(player);
+	particles.push(hazard);
 	console.log(`Connected: ${players.length} sockets connected`);
 
 	// Populate new client session with game entities and map dimensions
@@ -33,7 +38,8 @@ io.sockets.on('connection', (socket) => {
 	// Disconnect
 	socket.on('disconnect', (data) => {
 		players.splice(players.indexOf(player), 1);
-		particles.splice(particles.indexOf(player), 1);
+		particles.splice(particles.indexOf(hazard), 1);
+		if (particles.indexOf(player) != -1) particles.splice(particles.indexOf(player), 1);
 		console.log(`Disconnected, only ${players.length} sockets connected`);
 	});
 });
@@ -49,8 +55,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 1000;
-const height = 1000;
+const width = 1200;
+const height = 1200;
 const particles = [];
 const tick = 1000/60;	// 60fps
 const players = [];
@@ -63,7 +69,7 @@ function init() {
 	console.log('Initializing...');
 
 	// Create a bunch of random particles to interact with
-	for (let i = 0; i < 20; i++) {
+	for (let i = 0; i < 0; i++) {
 		const radius = 15;
 		const color = colors[Math.floor(Math.random() * colors.length)];
 		let x = Math.random() * (width - radius * 2) + radius;
@@ -81,6 +87,8 @@ function init() {
 
 	// Call update routinely 
 	setInterval(update, tick);
+	// Add a new feeder particle every second
+	setInterval(() => {particles.push(spawnParticle())}, tick*60);
 }
 
 function update() {
@@ -88,6 +96,36 @@ function update() {
 		 particle.update(particles);
 	}
 	io.emit('update', particles);
+}
+
+function spawnParticle() {
+	const radius = 15;
+	const color = colors[Math.floor(Math.random() * colors.length)];
+	let x = Math.random() * (width - radius * 2) + radius;
+	let y = Math.random() * (height - radius * 2) + radius; 
+	
+	for (let j = 0; j < particles.length; j++) {
+		if (distance(x, y, particles[j].x, particles[j].y) - radius * 2 < 0) {
+			x = Math.random() * (width - radius * 2) + radius;
+			y = Math.random() * (height - radius * 2) + radius;
+			j = -1;
+		}
+	}
+	return new Particle(x, y, radius, color);
+}
+
+function spawnHazard(id, color) {
+	const radius = 20;
+	let x = Math.random() * (width - radius * 2) + radius;
+	let y = Math.random() * (height - radius * 2) + radius; 
+	for (let j = 0; j < particles.length; j++) {
+		if (distance(x, y, particles[j].x, particles[j].y) - radius - particles[j].radius  < 0) {
+			x = Math.random() * (width - radius * 2) + radius;
+			y = Math.random() * (height - radius * 2) + radius;
+			j = -1;
+		}
+	}
+	return hazard = new Hazard(x, y, radius, color, id);
 }
 
 // -------------------- Entity objects --------------------
@@ -115,7 +153,7 @@ function Particle(x, y, radius, color) {
 			if (this == particles[i]) continue;
 
 			// Particle collisions
-			if (distance(this.x, this.y, particles[i].x, particles[i].y) - (this.radius + particles[i].radius) < 0) {
+			if (distance(this.x, this.y, particles[i].x, particles[i].y) - (this.radius + particles[i].radius) < 0 && !(particles[i] instanceof Hazard)) {
 				resolveCollision(this, particles[i]);
 			}
 			
@@ -158,6 +196,7 @@ function Player(x, y, radius, color, id) {
 		left: false,
 		right: false
 	};
+	this.hazard;
 
 	this.update = particles => {
 		
@@ -171,7 +210,7 @@ function Player(x, y, radius, color, id) {
 		// Particle collision 
 		for (let i = 0; i < particles.length; i++) {
 			if (this == particles[i]) continue;
-			if (distance(this.x, this.y, particles[i].x, particles[i].y) - radius * 2 < 0) {
+			if (distance(this.x, this.y, particles[i].x, particles[i].y) - this.radius - particles[i].radius < 0 && (!(particles[i] instanceof Hazard) || particles[i].id == this.id)) {
 				resolveCollision(this, particles[i]);
 			}
 
@@ -201,6 +240,28 @@ function Player(x, y, radius, color, id) {
 	}
 }
 Player.prototype = new Particle;
+
+function Hazard(x, y, radius, color, id) {
+	Particle.call(this, x, y, radius, color);
+	this.mass = 10;
+	this.id = id;
+	this.velocity = {
+		x: 0,
+		y: 0
+	}
+	this.update = particles => {
+		for (let i = 0; i < particles.length; i++) {
+			if (this.id == particles[i].id) continue;
+			if (distance(this.x, this.y, particles[i].x, particles[i].y) - this.radius < 0) {
+				particles[i].color = this.color;
+				this.mass += particles[i].mass;
+				this.radius += particles[i].mass;
+				particles.splice(i,1);
+			}
+		}
+	}
+}
+Hazard.prototype = new Particle;
 
 // -------------------- Math Functions --------------------
 function distance(x1, y1, x2, y2) {
@@ -258,7 +319,7 @@ function resolveCollision(particle, otherParticle) {
 
         // Velocity after 1d collision equation
         const v1 = { x: u1.x * (m1 - m2) / (m1 + m2) + u2.x * 2 * m2 / (m1 + m2), y: u1.y };
-        const v2 = { x: u2.x * (m1 - m2) / (m1 + m2) + u1.x * 2 * m2 / (m1 + m2), y: u2.y };
+        const v2 = { x: u2.x * (m2 - m1) / (m1 + m2) + u1.x * 2 * m1 / (m1 + m2), y: u2.y };
 
         // Final velocity after rotating axis back to original location
         const vFinal1 = rotate(v1, -angle);

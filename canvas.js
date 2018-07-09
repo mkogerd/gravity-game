@@ -148,16 +148,12 @@ socket.on('update', (particleList) => {
 function animate() {
 	requestAnimationFrame(animate);
 	c.clearRect(0, 0, canvas.width, canvas.height);
+	drawBoard();
 	
 	// Draw all entities onto map
 	particles.forEach(drawParticle);
 }
 
-// Debug function
-setInterval(() => {
-	// test to see if acceleration is working
-	console.log(particles[0].acceleration);
-}, 1000);
 // -------------------- Drawing functions --------------------
 function drawParticle(particle) {
 	c.beginPath();
@@ -173,3 +169,20 @@ function drawParticle(particle) {
 	c.stroke();
 	c.closePath();
 };
+
+function drawBoard(){
+	let p = 0;
+	for (var x = 0; x <= map.width; x += 40) {
+	    c.moveTo(0.5 + x + p - (frameX % 40), p);
+	    c.lineTo(0.5 + x + p - (frameX % 40), map.height + p);
+	}
+
+
+	for (var x = 0; x <= map.height; x += 40) {
+	    c.moveTo(p, 0.5 + x + p - (frameY % 40));
+	    c.lineTo(map.width + p, 0.5 + x + p - (frameY % 40));
+	}
+
+	c.strokeStyle = "black";
+	c.stroke();
+}
