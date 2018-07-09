@@ -50,8 +50,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 1000;
-const height = 1000;
+const width = 2000;
+const height = 500;
 const particles = [];
 const tick = 1000/60;
 const players = [];

@@ -127,13 +127,17 @@ socket.on('update', (particleList) => {
 	frameY = player.y - innerHeight/2;
 
 	// Special camera work for map borders
-	if (player.x < innerWidth/2) {
+	if(innerWidth > map.width) {
+		frameX = 0;
+	} else if (player.x < innerWidth/2) {
 		frameX = 0;
 	} else if (player.x > map.width - innerWidth/2) {
 		frameX = map.width - innerWidth;
 	} 
 
-	if (player.y < innerHeight/2) {
+	if(innerHeight > map.height) {
+		frameY = 0;
+	} else if (player.y < innerHeight/2) {
 		frameY = 0;
 	} else if (player.y > map.height - innerHeight/2) {
 		frameY = map.height - innerHeight;
