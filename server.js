@@ -17,13 +17,13 @@ app.get('/canvas.js', (req, res) => {
 // set up connection	
 io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
-	let player = new Player(15,15,10, 'blue');
+	let player = new Player(15,15,10, 'blue', socket.id);
 	players.push(player);
 	particles.push(player);
 	console.log(`Connected: ${players.length} sockets connected`);
 
-	// Populate new client session with game entities
-	socket.emit('initialize', particles); 
+	// Populate new client session with game entities and map dimensions
+	socket.emit('initialize', particles, width, height); 
 
 	// Update player controls 
 	socket.on('input', (control) => {
@@ -50,8 +50,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 800;
-const height = 600;
+const width = 1000;
+const height = 1000;
 const particles = [];
 const tick = 1000/60;
 const players = [];
@@ -127,8 +127,9 @@ function Particle(x, y, radius, color) {
 	}
 }
 
-function Player(x, y, radius, color) {
+function Player(x, y, radius, color, id) {
 	Particle.call(this, x, y, radius, color);
+	this.id = id;
 	this.velocity = {
 		x: 0,
 		y: 0
