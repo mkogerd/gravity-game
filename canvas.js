@@ -60,7 +60,6 @@ window.addEventListener('keydown', (event) => {
 
 	// Only inform server if a value has changed
 	if (update) {
-		console.log('keyDown');
 		socket.emit('input', control);
 	}
 });
@@ -91,7 +90,6 @@ window.addEventListener('keyup', (event) => {
 
 	// Only inform server if a value has changed
 	if (update) {
-		console.log('keyup');
 		socket.emit('input', control);
 	}
 });
@@ -103,7 +101,7 @@ function init() {
 	console.log('Initializing...');
 	socket = io();
 	console.log(socket);
-	socket.on('connect', () => {console.log(socket.id)});
+	socket.on('connect', () => {console.log(`Socket ID: ${socket.id}`)});
 }
 
 // Initialize environment
@@ -111,7 +109,7 @@ socket.on('initialize', (particleList, mapWidth, mapHeight) => {
 	particles = particleList;
 	map.width = mapWidth;
 	map.height = mapHeight;
-	console.log(map);
+	console.log('Map dimensions: ', map);
 	animate();
 });
 
@@ -155,6 +153,11 @@ function animate() {
 	particles.forEach(drawParticle);
 }
 
+// Debug function
+setInterval(() => {
+	// test to see if acceleration is working
+	console.log(particles[0].acceleration);
+}, 1000);
 // -------------------- Drawing functions --------------------
 function drawParticle(particle) {
 	c.beginPath();

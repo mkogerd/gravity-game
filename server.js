@@ -50,10 +50,10 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 2000;
-const height = 500;
+const width = 1000;
+const height = 1000;
 const particles = [];
-const tick = 1000/60;
+const tick = 1000/60;	// 60fps
 const players = [];
 
 init();
@@ -101,14 +101,31 @@ function Particle(x, y, radius, color) {
 		x: (Math.random() - 0.5) * 5,
 		y: (Math.random() - 0.5) * 5
 	};
+	this.acceleration = {
+		x: 0,
+		y: 0
+	};
 
 	this.update = particles => {
-		// Particle collision
+		this.acceleration.x = 0;
+		this.acceleration.y = 0;
+		// Particle interactions
 		for (let i = 0; i < particles.length; i++) {
 			if (this == particles[i]) continue;
+
+			// Particle collisions
 			if (distance(this.x, this.y, particles[i].x, particles[i].y) - (this.radius + particles[i].radius) < 0) {
 				resolveCollision(this, particles[i]);
 			}
+			
+			// Accumulate gravitational forces
+			let G = 9.8;	// 9.8 pixels per second
+			let Fg = (G * particles[i].mass * this.mass)/distance(this.x, this.y, particles[i].x, particles[i].y);
+			let theta = Math.atan((particles[i].y - this.y)/(particles[i].x - this.x));
+			theta = (particles[i].x < this.x) ? theta+Math.PI : theta; // Find proper quadrant
+
+			this.acceleration.x += Fg/this.mass*Math.cos(theta);
+			this.acceleration.y += Fg/this.mass*Math.sin(theta);
 		}	
 		
 		// Border collision
@@ -118,10 +135,11 @@ function Particle(x, y, radius, color) {
 		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
 			this.velocity.y = -this.velocity.y;
 		}
-
+		this.velocity.x += this.acceleration.x/tick;
+		this.velocity.y += this.acceleration.y/tick;
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
-		let friction = 0.999;
+		let friction = 0.99;
 		this.velocity.x = this.velocity.x * friction;
 		this.velocity.y = this.velocity.y * friction;
 	}
@@ -130,6 +148,7 @@ function Particle(x, y, radius, color) {
 function Player(x, y, radius, color, id) {
 	Particle.call(this, x, y, radius, color);
 	this.id = id;
+	this.mass = 1;
 	this.velocity = {
 		x: 0,
 		y: 0
