@@ -28,7 +28,6 @@ io.sockets.on('connection', (socket) => {
 	// Update player controls 
 	socket.on('input', (control) => {
 		player.control = control;
-		console.log(`${players.indexOf(player)}: `, player.control); // Debug
 	});
 	
 	// Disconnect
@@ -55,6 +54,8 @@ const height = 1000;
 const particles = [];
 const tick = 1000/60;	// 60fps
 const players = [];
+const friction = 0.99;
+const G = 9.8;	// 9.8 pixels per second^2
 
 init();
 
@@ -119,7 +120,6 @@ function Particle(x, y, radius, color) {
 			}
 			
 			// Accumulate gravitational forces
-			let G = 9.8;	// 9.8 pixels per second
 			let Fg = (G * particles[i].mass * this.mass)/distance(this.x, this.y, particles[i].x, particles[i].y);
 			let theta = Math.atan((particles[i].y - this.y)/(particles[i].x - this.x));
 			theta = (particles[i].x < this.x) ? theta+Math.PI : theta; // Find proper quadrant
@@ -139,7 +139,6 @@ function Particle(x, y, radius, color) {
 		this.velocity.y += this.acceleration.y/tick;
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
-		let friction = 0.99;
 		this.velocity.x = this.velocity.x * friction;
 		this.velocity.y = this.velocity.y * friction;
 	}
@@ -167,12 +166,22 @@ function Player(x, y, radius, color, id) {
 		if(this.control.right) this.velocity.x += .1;
 		if(this.control.left) this.velocity.x += -.1;
 		
+		this.acceleration.x = 0;
+		this.acceleration.y = 0;
 		// Particle collision 
 		for (let i = 0; i < particles.length; i++) {
 			if (this == particles[i]) continue;
 			if (distance(this.x, this.y, particles[i].x, particles[i].y) - radius * 2 < 0) {
 				resolveCollision(this, particles[i]);
 			}
+
+			// Accumulate gravitational forces
+			let Fg = (G * particles[i].mass * this.mass)/distance(this.x, this.y, particles[i].x, particles[i].y);
+			let theta = Math.atan((particles[i].y - this.y)/(particles[i].x - this.x));
+			theta = (particles[i].x < this.x) ? theta+Math.PI : theta; // Find proper quadrant
+
+			this.acceleration.x += Fg/this.mass*Math.cos(theta);
+			this.acceleration.y += Fg/this.mass*Math.sin(theta);
 		}	
 		
 		// Border collision
@@ -182,8 +191,13 @@ function Player(x, y, radius, color, id) {
 		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
 			this.velocity.y = -this.velocity.y;
 		}
+		
+		this.velocity.x += this.acceleration.x/tick;
+		this.velocity.y += this.acceleration.y/tick;
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
+		this.velocity.x = this.velocity.x * friction;
+		this.velocity.y = this.velocity.y * friction;
 	}
 }
 Player.prototype = new Particle;
