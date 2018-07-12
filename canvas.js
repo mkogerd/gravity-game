@@ -117,7 +117,7 @@ socket.on('initialize', (particleList, mapWidth, mapHeight) => {
 socket.on('update', (particleList) => {
 	particles = particleList;
 	player = particles.find((element) => {
-		return element.id == socket.id;
+		return (element.id == socket.id && element.type == 'Player');
 	});
 
 	// Keep camera centered on player
@@ -166,12 +166,13 @@ function drawParticle(particle) {
 	} else {
 		c.strokeStyle = particle.color;
 	}
-	c.stroke();
+	if(particle.type != 'Photon') c.stroke();
 	c.closePath();
 };
 
 function drawBoard(){
 	let p = 0;
+	c.beginPath();
 	for (var x = 0; x <= map.width; x += 40) {
 	    c.moveTo(0.5 + x + p - (frameX % 40), p);
 	    c.lineTo(0.5 + x + p - (frameX % 40), map.height + p);
@@ -185,4 +186,5 @@ function drawBoard(){
 
 	c.strokeStyle = "black";
 	c.stroke();
+	c.closePath();
 }

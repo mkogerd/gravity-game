@@ -19,12 +19,14 @@ io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
 	// Create new particle and hazard for player
 	const color = colors[Math.floor(Math.random() * colors.length)];
-	let player = new Player(15, 15, 10, color, socket.id);
+	let player = new Player(25, 25, 20, color, socket.id);
 	let hazard = spawnHazard(socket.id, color);
 
 	players.push(player);
 	particles.push(player);
 	particles.push(hazard);
+	particles[particles.length-1].radiate();
+	
 	console.log(`Connected: ${players.length} sockets connected`);
 
 	// Populate new client session with game entities and map dimensions
@@ -55,8 +57,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 1200;
-const height = 1200;
+const width = 500;
+const height = 700;
 const particles = [];
 const tick = 1000/60;	// 60fps
 const players = [];
@@ -89,6 +91,12 @@ function init() {
 	setInterval(update, tick);
 	// Add a new feeder particle every second
 	setInterval(() => {particles.push(spawnParticle())}, tick*60);
+	// Emit photons every second
+	setInterval(() => {
+		for(particle of particles) { 
+			if (particle instanceof Hazard) particle.radiate();
+		}
+	}, tick*120);
 }
 
 function update() {
@@ -129,7 +137,8 @@ function spawnHazard(id, color) {
 }
 
 // -------------------- Entity objects --------------------
-function Particle(x, y, radius, color) {
+function Particle(x, y, radius, color, type) {
+	this.type = type || 'Particle';
 	this.x = x;
 	this.y = y;
 	this.radius = radius;
@@ -146,8 +155,6 @@ function Particle(x, y, radius, color) {
 	};
 
 	this.update = particles => {
-		this.acceleration.x = 0;
-		this.acceleration.y = 0;
 		// Particle interactions
 		for (let i = 0; i < particles.length; i++) {
 			if (this == particles[i]) continue;
@@ -156,15 +163,12 @@ function Particle(x, y, radius, color) {
 			if (distance(this.x, this.y, particles[i].x, particles[i].y) - (this.radius + particles[i].radius) < 0 && !(particles[i] instanceof Hazard)) {
 				resolveCollision(this, particles[i]);
 			}
-			
-			// Accumulate gravitational forces
-			let Fg = (G * particles[i].mass * this.mass)/distance(this.x, this.y, particles[i].x, particles[i].y);
-			let theta = Math.atan((particles[i].y - this.y)/(particles[i].x - this.x));
-			theta = (particles[i].x < this.x) ? theta+Math.PI : theta; // Find proper quadrant
-
-			this.acceleration.x += Fg/this.mass*Math.cos(theta);
-			this.acceleration.y += Fg/this.mass*Math.sin(theta);
 		}	
+	
+		// Update acceleration based on gravity
+		let Fg = calculateFG(this);
+		this.acceleration.x = Fg.x/this.mass;
+		this.acceleration.y = Fg.y/this.mass;
 		
 		// Border collision
 		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
@@ -175,15 +179,15 @@ function Particle(x, y, radius, color) {
 		}
 		this.velocity.x += this.acceleration.x/tick;
 		this.velocity.y += this.acceleration.y/tick;
-		this.x += this.velocity.x;
-		this.y += this.velocity.y;
 		this.velocity.x = this.velocity.x * friction;
 		this.velocity.y = this.velocity.y * friction;
+		this.x += this.velocity.x;
+		this.y += this.velocity.y;
 	}
 }
 
 function Player(x, y, radius, color, id) {
-	Particle.call(this, x, y, radius, color);
+	Particle.call(this, x, y, radius, color, 'Player');
 	this.id = id;
 	this.mass = 1;
 	this.velocity = {
@@ -205,23 +209,18 @@ function Player(x, y, radius, color, id) {
 		if(this.control.right) this.velocity.x += .1;
 		if(this.control.left) this.velocity.x += -.1;
 		
-		this.acceleration.x = 0;
-		this.acceleration.y = 0;
 		// Particle collision 
 		for (let i = 0; i < particles.length; i++) {
 			if (this == particles[i]) continue;
 			if (distance(this.x, this.y, particles[i].x, particles[i].y) - this.radius - particles[i].radius < 0 && (!(particles[i] instanceof Hazard) || particles[i].id == this.id)) {
 				resolveCollision(this, particles[i]);
 			}
-
-			// Accumulate gravitational forces
-			let Fg = (G * particles[i].mass * this.mass)/distance(this.x, this.y, particles[i].x, particles[i].y);
-			let theta = Math.atan((particles[i].y - this.y)/(particles[i].x - this.x));
-			theta = (particles[i].x < this.x) ? theta+Math.PI : theta; // Find proper quadrant
-
-			this.acceleration.x += Fg/this.mass*Math.cos(theta);
-			this.acceleration.y += Fg/this.mass*Math.sin(theta);
-		}	
+		}
+		
+		// Update acceleration based on gravity
+		let Fg = calculateFG(this);
+		this.acceleration.x = Fg.x/this.mass;
+		this.acceleration.y = Fg.y/this.mass;
 		
 		// Border collision
 		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
@@ -233,35 +232,99 @@ function Player(x, y, radius, color, id) {
 		
 		this.velocity.x += this.acceleration.x/tick;
 		this.velocity.y += this.acceleration.y/tick;
+		this.velocity.x = this.velocity.x * friction;
+		this.velocity.y = this.velocity.y * friction;
+		this.x += this.velocity.x;
+		this.y += this.velocity.y;
+	}
+}
+Player.prototype = new Particle;
+
+function Hazard(x, y, radius, color, id) {
+	Particle.call(this, x, y, radius, color, 'Hazard');
+	this.baseRadius = radius;
+	this.mass = 1;
+	this.id = id;
+	this.velocity = {
+		x: 0,
+		y: 0
+	}
+
+	this.update = particles => {
+		for (let i = 0; i < particles.length; i++) {
+			//if (this.id == particles[i].id) continue;
+
+			if (distance(this.x, this.y, particles[i].x, particles[i].y) - this.radius < 0) {
+				if (this.id == particles[i].id || particles[i] instanceof Hazard) {
+					resolveCollision(this, particles[i]);
+				} else {
+					particles[i].color = this.color;
+					this.mass += particles[i].mass;
+					particles.splice(i,1);
+				}
+			}
+		}
+		
+		// Border collision
+		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
+			this.velocity.x = -this.velocity.x;
+		}
+		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
+			this.velocity.y = -this.velocity.y;
+		}
+		
+		this.radius = this.baseRadius + this.mass;
+		this.x += this.velocity.x;
+		this.y += this.velocity.y;
+		this.velocity.x = this.velocity.x * friction;
+		this.velocity.y = this.velocity.y * friction;
+	}
+
+	this.radiate = () => {
+		// Create photon along random tangent path
+		let photonRad = 5;
+		let theta = Math.random() * Math.PI * 2;
+		let photonX = this.x + (this.radius + photonRad) * Math.cos(theta);
+		let photonY = this.y + (this.radius + photonRad) * Math.sin(theta);
+		let photonVel = {
+			x: 5 * Math.cos(theta),
+			y: 5 * Math.sin(theta)
+		}
+		particles.push(new Photon(photonX, photonY, photonRad, this.color, this.mass/100, photonVel));	
+
+		// Reduce mass by 1%
+		this.mass = this.mass - this.mass/100;
+	}
+}
+Hazard.prototype = new Particle;
+
+function Photon(x, y, radius, color, mass, velocity) {
+	Particle.call(this, x, y, radius, color, 'Photon');
+	this.mass = mass;
+	this.id = 0;
+	this.t = 0;
+	this.rgb = color;
+	this.velocity = velocity;
+
+	this.update = particles => {
+		let tf = 2000; // 2 seconds 
+		let mass_o = 10;
+		let tau = 1;
+		this.mass = mass_o*Math.exp(-this.t/tau);
+		this.t += tick; // add length of tick (ms)
+		this.color = hexToRGBA(this.rgb, ((tf - this.t)/tf));
+
+		if (tf < this.t) {
+			particles.splice(particles.indexOf(this), 1);
+		}
+	
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
 		this.velocity.x = this.velocity.x * friction;
 		this.velocity.y = this.velocity.y * friction;
 	}
 }
-Player.prototype = new Particle;
-
-function Hazard(x, y, radius, color, id) {
-	Particle.call(this, x, y, radius, color);
-	this.mass = 10;
-	this.id = id;
-	this.velocity = {
-		x: 0,
-		y: 0
-	}
-	this.update = particles => {
-		for (let i = 0; i < particles.length; i++) {
-			if (this.id == particles[i].id) continue;
-			if (distance(this.x, this.y, particles[i].x, particles[i].y) - this.radius < 0) {
-				particles[i].color = this.color;
-				this.mass += particles[i].mass;
-				this.radius += particles[i].mass;
-				particles.splice(i,1);
-			}
-		}
-	}
-}
-Hazard.prototype = new Particle;
+Photon.prototype = new Particle;
 
 // -------------------- Math Functions --------------------
 function distance(x1, y1, x2, y2) {
@@ -332,4 +395,41 @@ function resolveCollision(particle, otherParticle) {
         otherParticle.velocity.x = vFinal2.x;
         otherParticle.velocity.y = vFinal2.y;
     }
+}
+
+function calculateFG(particle) {
+	let force = {
+		x: 0,
+		y: 0
+	}
+	// Particle collision 
+	for (let i = 0; i < particles.length; i++) {
+		// debug, does this mean everything sharing a null id won't effect eachother
+		if (particles[i] instanceof Photon || (particles[i].id == particle.id && particles[i].id)) continue;
+		// debug, current behavior is particle not effected by particles of whos center it overlaps
+		// If other physics are working, this shouldn't be needed
+		if (distance(particle.x, particle.y, particles[i].x, particles[i].y) < particle.radius) continue;
+		
+		// Accumulate gravitational forces
+		let Fg = (G * particles[i].mass * particle.mass)/(distance(particle.x, particle.y, particles[i].x, particles[i].y)+.0001);
+		let theta = Math.atan((particles[i].y - particle.y)/(particles[i].x - particle.x));
+		theta = (particles[i].x < particle.x) ? theta+Math.PI : theta; // Find proper quadrant
+
+		force.x += Fg*Math.cos(theta);
+		force.y += Fg*Math.sin(theta);
+	}	
+	return force;
+}
+
+// Allows adding alpha values to existing colors
+function hexToRGBA(hex, alpha) {
+	let r = parseInt(hex.slice(1, 3), 16),
+	    g = parseInt(hex.slice(3, 5), 16),
+	    b = parseInt(hex.slice(5, 7), 16);
+	
+	if (alpha) {
+		return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+	} else {
+		return "rgb(" + r + ", " + g + ", " + b + ")";
+	}
 }
