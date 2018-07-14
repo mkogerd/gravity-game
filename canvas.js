@@ -156,18 +156,36 @@ function animate() {
 
 // -------------------- Drawing functions --------------------
 function drawParticle(particle) {
+	c.save();
 	c.beginPath();
 	c.arc(particle.x - frameX, particle.y - frameY, particle.radius, 0, Math.PI * 2,  false);
-	c.fillStyle = particle.color;
-	c.fill();
-	// Highlight player's particle
-	if (particle.id == socket.id) {
-		c.strokeStyle = 'red';
-	} else {
+
+	// Draw particles according to type
+	switch(particle.type) {
+		case 'Player':
+		c.fillStyle = particle.color;
+		c.strokeStyle = 'grey';
+		c.lineWidth = 5;
+		c.stroke();
+		break;
+		
+		case 'Hazard':
+		c.fillStyle = 'black';
 		c.strokeStyle = particle.color;
+		c.lineWidth = 10;
+		c.stroke();
+		break;
+
+		case 'Photon':
+		c.fillStyle = particle.color;
+		break;	
+
+		default:
+		c.fillStyle = particle.color;
 	}
-	if(particle.type != 'Photon') c.stroke();
+	c.fill();
 	c.closePath();
+	c.restore();
 };
 
 function drawBoard(){
