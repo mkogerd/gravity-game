@@ -19,7 +19,7 @@ io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
 	// Create new particle and hazard for player
 	const color = colors[Math.floor(Math.random() * colors.length)];
-	let player = new Player(25, 25, 20, color, socket.id);
+	let player = new Player(25, 25, 10, color, socket.id);
 	let hazard = spawnHazard(socket.id, color);
 
 	players.push(player);
@@ -57,8 +57,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 500;
-const height = 700;
+const width = 1000;
+const height = 1000;
 const particles = [];
 const tick = 1000/60;	// 60fps
 const players = [];
@@ -171,12 +171,8 @@ function Particle(x, y, radius, color, type) {
 		this.acceleration.y = Fg.y/this.mass;
 		
 		// Border collision
-		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
-			this.velocity.x = -this.velocity.x;
-		}
-		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
-			this.velocity.y = -this.velocity.y;
-		}
+		resolveBorders(this);
+
 		this.velocity.x += this.acceleration.x/tick;
 		this.velocity.y += this.acceleration.y/tick;
 		this.velocity.x = this.velocity.x * friction;
@@ -223,12 +219,7 @@ function Player(x, y, radius, color, id) {
 		this.acceleration.y = Fg.y/this.mass;
 		
 		// Border collision
-		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
-			this.velocity.x = -this.velocity.x;
-		}
-		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
-			this.velocity.y = -this.velocity.y;
-		}
+		resolveBorders(this);
 		
 		this.velocity.x += this.acceleration.x/tick;
 		this.velocity.y += this.acceleration.y/tick;
@@ -266,12 +257,7 @@ function Hazard(x, y, radius, color, id) {
 		}
 		
 		// Border collision
-		if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
-			this.velocity.x = -this.velocity.x;
-		}
-		if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
-			this.velocity.y = -this.velocity.y;
-		}
+		resolveBorders(this);
 		
 		this.radius = this.baseRadius + this.mass;
 		this.x += this.velocity.x;
@@ -317,6 +303,9 @@ function Photon(x, y, radius, color, mass, velocity) {
 		if (tf < this.t) {
 			particles.splice(particles.indexOf(this), 1);
 		}
+
+		// Border collision
+		resolveBorders(this);
 	
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
@@ -395,6 +384,20 @@ function resolveCollision(particle, otherParticle) {
         otherParticle.velocity.x = vFinal2.x;
         otherParticle.velocity.y = vFinal2.y;
     }
+}
+
+// Border collision
+function resolveBorders(particle) {
+	if (particle.x - particle.radius <= 0) {
+		particle.velocity.x = Math.abs(particle.velocity.x);
+	} else if (particle.x + particle.radius >= width) {
+		particle.velocity.x = -Math.abs(particle.velocity.x);
+	}
+	if (particle.y - particle.radius <= 0) {
+		particle.velocity.y = Math.abs(particle.velocity.y);
+	} else if (particle.y + particle.radius >= height) {
+		particle.velocity.y = -Math.abs(particle.velocity.y);
+	}
 }
 
 function calculateFG(particle) {
