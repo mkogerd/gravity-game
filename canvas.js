@@ -22,6 +22,7 @@ const control = {
 
 let particles;
 let player;
+let hazard;
 let frameX, frameY;
 const map = {
 	width: 0,
@@ -119,6 +120,9 @@ socket.on('update', (particleList) => {
 	player = particles.find((element) => {
 		return (element.id == socket.id && element.type == 'Player');
 	});
+	hazard = particles.find((element) => {
+		return (element.id == socket.id && element.type == 'Hazard');
+	});
 
 	// Keep camera centered on player
 	frameX = player.x - innerWidth/2;
@@ -150,6 +154,10 @@ function animate() {
 	c.clearRect(0, 0, canvas.width, canvas.height);
 	drawBoard();
 	
+	// Connect player with theire hazard
+	if(hazard && player)
+		drawTether(player, hazard);
+
 	// Draw all entities onto map
 	particles.forEach(drawParticle);
 }
@@ -184,9 +192,21 @@ function drawParticle(particle) {
 		c.fillStyle = particle.color;
 	}
 	c.fill();
-	c.closePath();
 	c.restore();
-};
+}
+
+function drawTether(particle1, particle2) {
+	c.lineWidth = 1;
+	c.save();
+	c.beginPath();
+	c.moveTo(particle1.x - frameX, particle1.y - frameY);
+	c.lineTo(particle2.x - frameX, particle2.y - frameY);
+	c.strokeStyle = particle1.color;
+	c.globalAlpha = .2;
+	c.lineWidth = 10;
+	c.stroke();
+	c.restore();
+}
 
 function drawBoard(){
 	let p = 0;
@@ -204,5 +224,4 @@ function drawBoard(){
 
 	c.strokeStyle = "black";
 	c.stroke();
-	c.closePath();
 }
