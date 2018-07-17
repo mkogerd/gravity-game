@@ -407,14 +407,17 @@ function calculateFG(particle) {
 	}
 	// Particle collision 
 	for (let i = 0; i < particles.length; i++) {
-		// debug, does this mean everything sharing a null id won't effect eachother
-		if (particles[i] instanceof Photon || (particles[i].id == particle.id && particles[i].id)) continue;
+		dist = distance(particle.x, particle.y, particles[i].x, particles[i].y);
 		// debug, current behavior is particle not effected by particles of whos center it overlaps
 		// If other physics are working, this shouldn't be needed
-		if (distance(particle.x, particle.y, particles[i].x, particles[i].y) < particle.radius) continue;
+		if (	(particles[i] instanceof Photon) || 
+			(particles[i].id == particle.id && particles[i].id) ||
+			(dist < particle.radius) ||
+			(dist > particles[i].radius*4))
+			continue;
 		
 		// Accumulate gravitational forces
-		let Fg = (G * particles[i].mass * particle.mass)/(distance(particle.x, particle.y, particles[i].x, particles[i].y)+.0001);
+		let Fg = (G * particles[i].mass * particle.mass)/(dist);
 		let theta = Math.atan((particles[i].y - particle.y)/(particles[i].x - particle.x));
 		theta = (particles[i].x < particle.x) ? theta+Math.PI : theta; // Find proper quadrant
 
