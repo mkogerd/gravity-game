@@ -14,23 +14,38 @@ app.get('/canvas.js', (req, res) => {
 	res.sendFile(__dirname + '/canvas.js');
 });
 
+app.get('/main.css', (req, res) => {
+	res.sendFile(__dirname + '/main.css');
+});
+
 // set up connection	
 io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
 	// Create new particle and hazard for player
 	const color = colors[Math.floor(Math.random() * colors.length)];
+
 	let player = new Player(25, 25, 10, color, socket.id);
 	let hazard = spawnHazard(socket.id, color);
 
 	players.push(player);
 	particles.push(player);
 	particles.push(hazard);
-	particles[particles.length-1].radiate();
-	
+
 	console.log(`Connected: ${players.length} sockets connected`);
 
 	// Populate new client session with game entities and map dimensions
 	socket.emit('initialize', particles, width, height); 
+
+	socket.on('start', () => {
+		console.log('start received');
+/*
+		player = new Player(25, 25, 10, color, socket.id);
+		hazard = spawnHazard(socket.id, color);
+
+		players.push(player);
+		particles.push(player);
+		particles.push(hazard);*/
+	});
 
 	// Update player controls 
 	socket.on('input', (control) => {
@@ -46,7 +61,7 @@ io.sockets.on('connection', (socket) => {
 	});
 });
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3001);
 
 // -------------------- Implementation --------------------
 const colors = [

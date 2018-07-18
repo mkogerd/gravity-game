@@ -3,14 +3,31 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Collisions</title>
-	<style>
-		canvas { display: block; }
-		body { margin: 0; }
-	</style>
+	<link rel="stylesheet" type="text/css" href="main.css">
 	<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 	<canvas></canvas>
 	<script src="/canvas.js"></script>
+	<div class="startMenuWrapper">
+		<div class="startMenu" id="startMenu">
+			<input type="text" name="name" placeholder="Enter your name here"></input>
+			<button id="startButton"> Play </button>
+			<p> Grow your black hole, without being sucked into others' </p>
+		</div>
+	</div>
 </body>
 </html>
+<script>
+	let btn = document.getElementById('startButton');
+
+	btn.onclick = startGame;
+	function startGame() {
+		document.getElementById('startMenu').style.maxHeight = 0;
+		console.log('button press');
+		socket.emit('start');
+		console.log(socket);
+	}
+	
+	
+</script>

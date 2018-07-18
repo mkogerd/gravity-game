@@ -102,6 +102,7 @@ function init() {
 	console.log('Initializing...');
 	socket = io();
 	console.log(socket);
+	socket.emit('start');
 	socket.on('connect', () => {console.log(`Socket ID: ${socket.id}`)});
 }
 
