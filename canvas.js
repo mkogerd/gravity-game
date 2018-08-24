@@ -102,7 +102,6 @@ function init() {
 	console.log('Initializing...');
 	socket = io();
 	console.log(socket);
-	socket.emit('start');
 	socket.on('connect', () => {console.log(`Socket ID: ${socket.id}`)});
 }
 
@@ -111,6 +110,8 @@ socket.on('initialize', (particleList, mapWidth, mapHeight) => {
 	particles = particleList;
 	map.width = mapWidth;
 	map.height = mapHeight;
+	frameX = map.width/2 - innerWidth/2;
+	frameY = map.height/2 - innerHeight/2;;
 	console.log('Map dimensions: ', map);
 	animate();
 });
@@ -118,35 +119,35 @@ socket.on('initialize', (particleList, mapWidth, mapHeight) => {
 // Update environment
 socket.on('update', (particleList) => {
 	particles = particleList;
-	player = particles.find((element) => {
-		return (element.id == socket.id && element.type == 'Player');
-	});
-	hazard = particles.find((element) => {
-		return (element.id == socket.id && element.type == 'Hazard');
-	});
+	if(inSession) {
+		player = particles.find((element) => {
+			return (element.id == socket.id && element.type == 'Player');
+		});
+		hazard = particles.find((element) => {
+			return (element.id == socket.id && element.type == 'Hazard');
+		});
 
-	// Keep camera centered on player
-	frameX = player.x - innerWidth/2;
-	frameY = player.y - innerHeight/2;
+		// Keep camera centered on player
+		frameX = player.x - innerWidth/2;
+		frameY = player.y - innerHeight/2;
 
-	// Special camera work for map borders
-	if(innerWidth > map.width) {
-		frameX = 0;
-	} else if (player.x < innerWidth/2) {
-		frameX = 0;
-	} else if (player.x > map.width - innerWidth/2) {
-		frameX = map.width - innerWidth;
-	} 
+		// Special camera work for map borders
+		if(innerWidth > map.width) {
+			frameX = 0;
+		} else if (player.x < innerWidth/2) {
+			frameX = 0;
+		} else if (player.x > map.width - innerWidth/2) {
+			frameX = map.width - innerWidth;
+		} 
 
-	if(innerHeight > map.height) {
-		frameY = 0;
-	} else if (player.y < innerHeight/2) {
-		frameY = 0;
-	} else if (player.y > map.height - innerHeight/2) {
-		frameY = map.height - innerHeight;
-	} 
-	 
-	 
+		if(innerHeight > map.height) {
+			frameY = 0;
+		} else if (player.y < innerHeight/2) {
+			frameY = 0;
+		} else if (player.y > map.height - innerHeight/2) {
+			frameY = map.height - innerHeight;
+		} 
+	}
 });
 
 // Display environment
@@ -155,7 +156,7 @@ function animate() {
 	c.clearRect(0, 0, canvas.width, canvas.height);
 	drawBoard();
 	
-	// Connect player with theire hazard
+	// Connect player with their hazard
 	if(hazard && player)
 		drawTether(player, hazard);
 
@@ -210,17 +211,17 @@ function drawTether(particle1, particle2) {
 }
 
 function drawBoard(){
-	let p = 0;
 	c.beginPath();
-	for (var x = 0; x <= map.width; x += 40) {
-	    c.moveTo(0.5 + x + p - (frameX % 40), p);
-	    c.lineTo(0.5 + x + p - (frameX % 40), map.height + p);
+	// Draw vertical gridlines
+	for (var x = -frameX; x <= map.width-frameX; x += 40) {
+	    c.moveTo(0.5 + x, -frameY);
+	    c.lineTo(0.5 + x, map.height - frameY);
 	}
 
-
-	for (var x = 0; x <= map.height; x += 40) {
-	    c.moveTo(p, 0.5 + x + p - (frameY % 40));
-	    c.lineTo(map.width + p, 0.5 + x + p - (frameY % 40));
+	// Draw horizontal gridlines
+	for (var y = -frameY; y <= map.height-frameY; y += 40) {
+	    c.moveTo(-frameX, 0.5 + y);
+	    c.lineTo(map.width - frameX, 0.5 + y);
 	}
 
 	c.strokeStyle = "black";

@@ -20,13 +20,15 @@
 </html>
 <script>
 	let btn = document.getElementById('startButton');
+	let inSession = false;
 
 	btn.onclick = startGame; 
 	function startGame() {
 		var val = document.getElementById('nameInput').value;
 		console.log('Player started as ' + val);
 		document.getElementById('startMenu').style.maxHeight = 0;
-		socket.emit('start');
+		socket.emit('start', val);
+		inSession = true;
 	}
 	
 	

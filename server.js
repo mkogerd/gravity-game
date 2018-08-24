@@ -21,35 +21,32 @@ app.get('/main.css', (req, res) => {
 // set up connection	
 io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
-	// Create new particle and hazard for player
 	const color = colors[Math.floor(Math.random() * colors.length)];
-
-	let player = new Player(25, 25, 10, color, socket.id);
-	let hazard = spawnHazard(socket.id, color);
-
-	players.push(player);
-	particles.push(player);
-	particles.push(hazard);
-
-	console.log(`Connected: ${players.length} sockets connected`);
 
 	// Populate new client session with game entities and map dimensions
 	socket.emit('initialize', particles, width, height); 
+	
+	let player;
+	let hazard;
+	let inSession = false;
 
-	socket.on('start', () => {
+	socket.on('start', (name) => {
 		console.log('start received');
-/*
+		// Create new particle and hazard for player
 		player = new Player(25, 25, 10, color, socket.id);
 		hazard = spawnHazard(socket.id, color);
 
 		players.push(player);
 		particles.push(player);
-		particles.push(hazard);*/
+		particles.push(hazard);
+		inSession = true;
+		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
 	});
 
 	// Update player controls 
 	socket.on('input', (control) => {
-		player.control = control;
+		if (inSession)
+			player.control = control;
 	});
 	
 	// Disconnect
