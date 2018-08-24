@@ -29,6 +29,7 @@ io.sockets.on('connection', (socket) => {
 	let player;
 	let hazard;
 	let inSession = false;
+	let playerName;
 
 	socket.on('start', (name) => {
 		console.log('start received');
@@ -40,6 +41,7 @@ io.sockets.on('connection', (socket) => {
 		particles.push(player);
 		particles.push(hazard);
 		inSession = true;
+		playerName = name;
 		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
 	});
 
@@ -47,6 +49,12 @@ io.sockets.on('connection', (socket) => {
 	socket.on('input', (control) => {
 		if (inSession)
 			player.control = control;
+	});
+
+	// Send message
+	socket.on('message', (msg) => {
+		if (inSession)
+			io.emit('message', playerName, msg);
 	});
 	
 	// Disconnect

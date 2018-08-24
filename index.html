@@ -7,8 +7,6 @@
 	<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-	<canvas></canvas>
-	<script src="/canvas.js"></script>
 	<div class="startMenu" id="startMenu">
 		<div class="startMenuContent">
 			<input id="nameInput" type="text" name="name" placeholder="Enter your name here"></input>
@@ -16,10 +14,20 @@
 			<p> Grow your black hole, don't get sucked into others. </p>
 		</div>
 	</div>
+
+	<div id="chatBox">
+		<div id="chatFeed"></div>
+		<input id="chatInput" placeholder="Press enter to type">
+	</div>
+
+	<canvas></canvas>
+	<script src="/canvas.js"></script>
 </body>
 </html>
 <script>
 	let btn = document.getElementById('startButton');
+	let chatFeed = document.getElementById('chatFeed');
+	let chatInput = document.getElementById('chatInput');
 	let inSession = false;
 
 	btn.onclick = startGame; 
@@ -30,6 +38,33 @@
 		socket.emit('start', val);
 		inSession = true;
 	}
+
+	// Chat handling
+	addEventListener('keydown', (event) => {
+		if (event.key == 'Enter') {
+			if (document.activeElement === chatInput)
+				submitMsg();
+			else
+				chatInput.focus();
+		}
+		if (event.key == 'Escape')
+			document.activeElement.blur();
+	});
+
+	// Submit new message
+	function submitMsg() {
+		socket.emit('message', chatInput.value);
+		chatInput.value = "";
+	}
+
+	// Post new received message
+	socket.on('message', (name, msg) => {
+		var x = document.createElement("P");
+		var t = document.createTextNode(name + ': ' + msg);
+		x.appendChild(t);
+		chatFeed.appendChild(x);
+	});
+	
 	
 	
 </script>
