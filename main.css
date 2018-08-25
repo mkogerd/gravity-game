@@ -39,6 +39,7 @@ body {
 
 /* Chat styling */
 #chatBox {
+	display: none;
 	text-align: left;
 	position: fixed;
 	bottom: 0;

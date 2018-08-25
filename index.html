@@ -17,7 +17,7 @@
 
 	<div id="chatBox">
 		<div id="chatFeed"></div>
-		<input id="chatInput" placeholder="Press enter to type">
+		<input id="chatInput" placeholder="Press enter to type, escape to close.">
 	</div>
 
 	<canvas></canvas>
@@ -26,19 +26,20 @@
 </html>
 <script>
 	let btn = document.getElementById('startButton');
+	let chatBox = document.getElementById('chatBox');
 	let chatFeed = document.getElementById('chatFeed');
 	let chatInput = document.getElementById('chatInput');
 	let nameInput = document.getElementById('nameInput');
+	let startMenu = document.getElementById('startMenu');
 	let inSession = false;
 
 	btn.onclick = startGame; 
 	function startGame() {
-		var val = nameInput.value;
-		console.log('Player started as ' + val);
-		document.getElementById('startMenu').style.maxHeight = 0;
-		socket.emit('start', val);
-		inSession = true;
 		nameInput.blur();
+		startMenu.style.display = 'none';
+		chatBox.style.display = 'block';
+		inSession = true;
+		socket.emit('start', nameInput.value);
 	}
 
 	// Chat handling
@@ -48,13 +49,17 @@
 				submitMsg();
 			else if (document.activeElement === nameInput)
 				startGame();
-			else if (inSession)
+			else if (inSession) {
+				chatBox.style.display = 'block';
 				chatInput.focus();
+			}
 			else 
 				nameInput.focus();
 		}
-		if (event.key == 'Escape')
+		if (event.key == 'Escape') {
 			document.activeElement.blur();
+			chatBox.style.display = 'none';
+		}
 	});
 
 	// Submit new message
