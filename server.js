@@ -32,6 +32,7 @@ io.sockets.on('connection', (socket) => {
 	let playerName;
 
 	socket.on('start', (name) => {
+		if (inSession) return;
 		console.log('start received');
 		// Create new particle and hazard for player
 		player = new Player(25, 25, 10, color, socket.id);
@@ -41,7 +42,7 @@ io.sockets.on('connection', (socket) => {
 		particles.push(player);
 		particles.push(hazard);
 		inSession = true;
-		playerName = name;
+		playerName = name == "" ? "default" : name;
 		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
 	});
 
