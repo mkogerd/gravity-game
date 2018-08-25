@@ -220,11 +220,11 @@ function Player(x, y, radius, color, id) {
 	this.hazard;
 
 	this.update = particles => {
-		
-		if(this.control.up) this.velocity.y += -.1;
-		if(this.control.down) this.velocity.y += .1;
-		if(this.control.right) this.velocity.x += .1;
-		if(this.control.left) this.velocity.x += -.1;
+		let dv = .2;
+		if(this.control.up) this.velocity.y += -dv;
+		if(this.control.down) this.velocity.y += dv;
+		if(this.control.right) this.velocity.x += dv;
+		if(this.control.left) this.velocity.x += -dv;
 		
 		// Particle collision 
 		for (let i = 0; i < particles.length; i++) {
