@@ -9,7 +9,7 @@
 <body>
 	<div class="startMenu" id="startMenu">
 		<div class="startMenuContent">
-			<input id="nameInput" type="text" name="name" placeholder="Enter your name here"></input>
+			<input id="nameInput" type="text" name="name" placeholder="Enter your name here">
 			<button id="startButton"> Play </button>
 			<p> Grow your black hole, don't get sucked into others. </p>
 		</div>
@@ -18,6 +18,16 @@
 	<div id="chatBox">
 		<div id="chatFeed"></div>
 		<input id="chatInput" placeholder="Press enter to type, escape to close.">
+	</div>
+	
+	<div id="leaderBoard">
+		<ol id="leaderList">
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+		</ol>
 	</div>
 
 	<canvas></canvas>
@@ -76,7 +86,27 @@
 		chatFeed.appendChild(x);
 		chatFeed.scrollTo(0, chatFeed.scrollHeight);
 	});
-	
+
+	// Leaderboard handling
+	socket.on('update', (particleList) => {
+		// Find all hazards, they are what determine score
+		hazards = particleList.filter((element) => {
+			return (element.type == 'Hazard');
+		});
+
+		// Sort them by biggest to smallest mass
+		hazards.sort((a,b) => {
+			return (a.mass > b.mass) ? -1 : ((b.mass > a.mass) ? 1 : 0);
+		});
+		
+		// Fill leaderboard
+		items = document.getElementById('leaderList').children;
+		for (let i = 0; i < items.length; i++) {
+			if(i < hazards.length)
+				items[i].innerHTML = hazards[i].name + ' - ' + hazards[i].mass;	
+			else items[i].innerHTML = '';
+		}
+	});
 	
 	
 </script>

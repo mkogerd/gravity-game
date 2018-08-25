@@ -64,3 +64,12 @@ body {
 	padding: 10px;
 	color: green;
 }
+
+/* Leaderboard styling */
+#leaderBoard {
+	position: fixed;
+	width: 20vw;
+	bottom: 0;
+	right: 0;
+	font-weight: bold;
+}

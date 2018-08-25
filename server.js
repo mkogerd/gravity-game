@@ -35,14 +35,14 @@ io.sockets.on('connection', (socket) => {
 		if (inSession) return;
 		console.log('start received');
 		// Create new particle and hazard for player
+		playerName = name == "" ? "default" : name;
 		player = new Player(25, 25, 10, color, socket.id);
-		hazard = spawnHazard(socket.id, color);
+		hazard = spawnHazard(socket.id, playerName, color);
 
 		players.push(player);
 		particles.push(player);
 		particles.push(hazard);
 		inSession = true;
-		playerName = name == "" ? "default" : name;
 		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
 	});
 
@@ -143,7 +143,7 @@ function spawnParticle() {
 	return new Particle(x, y, radius, color);
 }
 
-function spawnHazard(id, color) {
+function spawnHazard(id, name, color) {
 	const radius = 20;
 	let x = Math.random() * (width - radius * 2) + radius;
 	let y = Math.random() * (height - radius * 2) + radius; 
@@ -154,7 +154,7 @@ function spawnHazard(id, color) {
 			j = -1;
 		}
 	}
-	return hazard = new Hazard(x, y, radius, color, id);
+	return hazard = new Hazard(x, y, radius, color, id, name);
 }
 
 // -------------------- Entity objects --------------------
@@ -252,11 +252,12 @@ function Player(x, y, radius, color, id) {
 }
 Player.prototype = new Particle;
 
-function Hazard(x, y, radius, color, id) {
+function Hazard(x, y, radius, color, id, name) {
 	Particle.call(this, x, y, radius, color, 'Hazard');
 	this.baseRadius = radius;
 	this.mass = 1;
 	this.id = id;
+	this.name = name;
 	this.velocity = {
 		x: 0,
 		y: 0
