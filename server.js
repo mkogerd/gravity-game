@@ -14,10 +14,21 @@ app.get('/canvas.js', (req, res) => {
 	res.sendFile(__dirname + '/canvas.js');
 });
 
+app.get('/chat-client.js', (req, res) => {
+	res.sendFile(__dirname + '/chat-client.js');
+});
+
+app.get('/leaderboard.js', (req, res) => {
+	res.sendFile(__dirname + '/leaderboard.js');
+});
+
+app.get('/app.js', (req, res) => {
+	res.sendFile(__dirname + '/app.js');
+});
+
 app.get('/main.css', (req, res) => {
 	res.sendFile(__dirname + '/main.css');
 });
-
 // set up connection	
 io.sockets.on('connection', (socket) => {
 	console.log(`Socket id:${socket.id} connected`);
@@ -54,6 +65,7 @@ io.sockets.on('connection', (socket) => {
 
 	// Send message
 	socket.on('message', (msg) => {
+		console.log(msg);
 		if (inSession)
 			io.emit('message', playerName, msg);
 	});

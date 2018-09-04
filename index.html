@@ -21,92 +21,21 @@
 	</div>
 	
 	<div id="leaderBoard">
-		<ol id="leaderList">
+		<ul id="leaderList">
 			<li></li>
 			<li></li>
 			<li></li>
 			<li></li>
 			<li></li>
-		</ol>
+		</ul>
 	</div>
 
 	<canvas></canvas>
-	<script src="/canvas.js"></script>
+	
+	
 </body>
 </html>
-<script>
-	let btn = document.getElementById('startButton');
-	let chatBox = document.getElementById('chatBox');
-	let chatFeed = document.getElementById('chatFeed');
-	let chatInput = document.getElementById('chatInput');
-	let nameInput = document.getElementById('nameInput');
-	let startMenu = document.getElementById('startMenu');
-	let inSession = false;
-
-	btn.onclick = startGame; 
-	function startGame() {
-		nameInput.blur();
-		startMenu.style.display = 'none';
-		chatBox.style.display = 'block';
-		inSession = true;
-		socket.emit('start', nameInput.value);
-	}
-
-	// Chat handling
-	addEventListener('keydown', (event) => {
-		if (event.key == 'Enter') {
-			if (document.activeElement === chatInput)
-				submitMsg();
-			else if (document.activeElement === nameInput)
-				startGame();
-			else if (inSession) {
-				chatBox.style.display = 'block';
-				chatInput.focus();
-			}
-			else 
-				nameInput.focus();
-		}
-		if (event.key == 'Escape') {
-			document.activeElement.blur();
-			chatBox.style.display = 'none';
-		}
-	});
-
-	// Submit new message
-	function submitMsg() {
-		socket.emit('message', chatInput.value);
-		chatInput.value = "";
-	}
-
-	// Post new received message
-	socket.on('message', (name, msg) => {
-		var x = document.createElement("P");
-		var t = document.createTextNode(name + ': ' + msg);
-		x.appendChild(t);
-		chatFeed.appendChild(x);
-		chatFeed.scrollTo(0, chatFeed.scrollHeight);
-	});
-
-	// Leaderboard handling
-	socket.on('update', (particleList) => {
-		// Find all hazards, they are what determine score
-		hazards = particleList.filter((element) => {
-			return (element.type == 'Hazard');
-		});
-
-		// Sort them by biggest to smallest mass
-		hazards.sort((a,b) => {
-			return (a.mass > b.mass) ? -1 : ((b.mass > a.mass) ? 1 : 0);
-		});
-		
-		// Fill leaderboard
-		items = document.getElementById('leaderList').children;
-		for (let i = 0; i < items.length; i++) {
-			if(i < hazards.length)
-				items[i].innerHTML = hazards[i].name + ' - ' + hazards[i].mass;	
-			else items[i].innerHTML = '';
-		}
-	});
-	
-	
-</script>
+<script src="/canvas.js"></script>
+<script src="/chat-client.js"></script>
+<script src="/leaderboard.js"></script>
+<script src="/app.js"></script>
