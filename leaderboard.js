@@ -1,11 +1,12 @@
 class LeaderBoard {
 	constructor() {
 		this.list = document.getElementById('leaderList');
+		this.numLeaders = 5;
 	}
 
 	// Update
 	update(particleList) {
-		// Find all hazards, they are what determine score
+		// Find all hazards, their mass determines score
 		let hazards = particleList.filter((element) => {
 			return (element.type == 'Hazard');
 		});
@@ -16,11 +17,12 @@ class LeaderBoard {
 		});
 		
 		// Fill leaderboard
-		let items = this.list.children;
-		for (let i = 0; i < items.length; i++) {
+		let leaderUpdateStr = '';
+		for (let i = 0; i < this.numLeaders; i++) {
 			if(i < hazards.length)
-				items[i].innerHTML = hazards[i].name + ' - ' + hazards[i].mass;	
-			else items[i].innerHTML = '';
+				leaderUpdateStr += '<li>' + hazards[i].name + ' - ' + hazards[i].mass + '</li>';	
+			else leaderUpdateStr += '<li></li>';
 		}
+		this.list.innerHTML = leaderUpdateStr;
 	}
 }
