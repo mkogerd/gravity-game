@@ -52,6 +52,7 @@ body {
 }
 #chatFeed {
 	height: 80%;
+	margin: 0;
 	overflow: hidden;
 	list-style: none;
 	padding: 10px;
