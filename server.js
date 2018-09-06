@@ -93,8 +93,8 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 1000;
-const height = 1000;
+const width = 1500;
+const height = 1100;
 const particles = [];
 const tick = 1000/60;	// 60fps
 const sockets = [];
