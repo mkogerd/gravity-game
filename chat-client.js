@@ -8,7 +8,6 @@ class ChatClient {
 
 	// Submit new message
 	submitMsg(e) {
-
 		var key = e.which || e.keyCode || 0;
 		if (key === 13) {
 			if (this.input.value !== '') {
