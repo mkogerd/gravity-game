@@ -7,6 +7,7 @@ To host, clone the repository and while in the directory run `npm install` follo
 - ~~Explain controls better.~~
 - ~~Add a way to restart after dying without refreshing page.~~
 - ~~Sleep server activity when no one is connected.~~
+- Cleanup serverside code and break into node modules.
 - Allow instancing of game.
 - Maybe: Add a database to store user data.
 - *Make the game fun.*
