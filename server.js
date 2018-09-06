@@ -31,7 +31,8 @@ app.get('/main.css', (req, res) => {
 });
 // set up connection	
 io.sockets.on('connection', (socket) => {
-	console.log(`Socket id:${socket.id} connected`);
+	sockets.push(socket.id);
+	console.log(`Socket id:${socket.id} connected, ${sockets.length} sockets connected`);
 	const color = colors[Math.floor(Math.random() * colors.length)];
 
 	// Populate new client session with game entities and map dimensions
@@ -49,22 +50,15 @@ io.sockets.on('connection', (socket) => {
 		        break;
 		    }
 		}
-		for(var i = 0; i < players.length; i++) {
-		    if (players[i].id == socket.id) {
-		        players.splice(i, 1);
-		        break;
-		    }
-		}
 
 		// Create new particle and hazard for player
 		playerName = name == "" ? "default" : name;
 		player = new Player(25, 25, 10, color, socket.id);
 		hazard = spawnHazard(socket.id, playerName, color);
 
-		players.push(player);
 		particles.push(player);
 		particles.push(hazard);
-		console.log(`"${name}" joined - ${players.length} player(s) in session`);
+		console.log(`"${name}" joined session`);
 		socket.emit('start');
 	});
 
@@ -81,10 +75,10 @@ io.sockets.on('connection', (socket) => {
 	
 	// Disconnect
 	socket.on('disconnect', (data) => {
-		players.splice(players.indexOf(player), 1);
 		particles.splice(particles.indexOf(hazard), 1);
+		sockets.splice(particles.indexOf(socket.id), 1);
 		if (particles.indexOf(player) != -1) particles.splice(particles.indexOf(player), 1);
-		console.log(`Disconnected, only ${players.length} sockets connected`);
+		console.log(`Disconnected, only ${sockets.length} sockets connected`);
 	});
 });
 
@@ -103,7 +97,7 @@ const width = 1000;
 const height = 1000;
 const particles = [];
 const tick = 1000/60;	// 60fps
-const players = [];
+const sockets = [];
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
 
@@ -129,10 +123,14 @@ function init() {
 		particles.push(new Particle(x, y, radius, color));
 	}
 
+	// TO DO: Put all of these interval functions into the update function
 	// Call update routinely 
 	setInterval(update, tick);
-	// Add a new feeder particle every second
-	setInterval(() => {particles.push(spawnParticle())}, tick*60);
+	// Add a new feeder particle every second if a player is in the game
+	setInterval(() => {
+		if (particles.find((particle) => { return particle.type == 'Player' }) != null)
+				particles.push(spawnParticle())
+	}, tick*60);
 	// Emit photons every second
 	setInterval(() => {
 		for(particle of particles) { 
@@ -142,10 +140,12 @@ function init() {
 }
 
 function update() {
-	for(particle of particles) {
-		 particle.update(particles);
+	if (sockets.length != 0) {	// Only update when a socket is connected
+		for(particle of particles) {
+			 particle.update(particles);
+		}
+		io.emit('update', particles);
 	}
-	io.emit('update', particles);
 }
 
 function spawnParticle() {
