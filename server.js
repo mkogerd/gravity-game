@@ -39,12 +39,23 @@ io.sockets.on('connection', (socket) => {
 	
 	let player;
 	let hazard;
-	let inSession = false;
 	let playerName;
 
 	socket.on('startRequest', (name) => {
-		if (inSession) return;
-		console.log('start received');
+		// Clear out old instances of player
+		for(var i = 0; i < particles.length; i++) {
+		    if (particles[i].id == socket.id) {
+		        particles.splice(i, 1);
+		        break;
+		    }
+		}
+		for(var i = 0; i < players.length; i++) {
+		    if (players[i].id == socket.id) {
+		        players.splice(i, 1);
+		        break;
+		    }
+		}
+
 		// Create new particle and hazard for player
 		playerName = name == "" ? "default" : name;
 		player = new Player(25, 25, 10, color, socket.id);
@@ -53,22 +64,19 @@ io.sockets.on('connection', (socket) => {
 		players.push(player);
 		particles.push(player);
 		particles.push(hazard);
-		inSession = true;
-		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
+		console.log(`"${name}" joined - ${players.length} player(s) in session`);
 		socket.emit('start');
 	});
 
 	// Update player controls 
 	socket.on('input', (control) => {
-		if (inSession)
-			player.control = control;
+		player.control = control;
 	});
 
 	// Send message
 	socket.on('message', (msg) => {
-		console.log(msg);
-		if (inSession)
-			io.emit('message', playerName, msg);
+		console.log(`"${playerName}" says: ${msg}`);
+		io.emit('message', playerName, msg);
 	});
 	
 	// Disconnect
@@ -80,7 +88,7 @@ io.sockets.on('connection', (socket) => {
 	});
 });
 
-server.listen(process.env.PORT || 3001);
+server.listen(process.env.PORT || 3000);
 
 // -------------------- Implementation --------------------
 const colors = [

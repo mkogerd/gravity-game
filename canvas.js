@@ -31,22 +31,16 @@ class Canvas {
 		}
 	}
 
-	update(particleList) {
-		//console.log(this);
+	update(particleList, trackPlayer) {
 		this.particles = particleList;
-		if(inSession) {
+
+		if(trackPlayer) {
 			this.player = this.particles.find((element) => {
 				return (element.id == socket.id && element.type == 'Player');
 			});
 			this.hazard = this.particles.find((element) => {
 				return (element.id == socket.id && element.type == 'Hazard');
 			});
-
-			// When player dies, stop tracking player
-			if(!this.player) {
-				inSession = false;
-				return;
-			}
 
 			// Keep camera centered on player
 			this.frame.x = this.player.x - innerWidth/2;

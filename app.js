@@ -18,6 +18,16 @@ function startGame() {
 	socket.emit('startRequest', nameInput.value);
 }
 
+function onDeath() {
+	// Reset screen to start menu
+	inSession = false;
+	startMenu.style.display = 'block';
+	chatBox.style.display = 'none';
+	nameInput.focus();
+	// Clear arrow input status
+	Object.keys(canvas.control).forEach(dir => canvas.control[dir] = false);
+}
+
 // Game focus handling
 addEventListener('keydown', (event) => {
 	if (event.key == 'Enter') {
@@ -55,8 +65,12 @@ socket.on('message', (name, msg) => {
 
 // Leaderboard handling
 socket.on('update', (particleList) => {
+	// Check if player was eliminated
+	if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == 'Player'); }) == null) 
+		onDeath();
+
 	leaderboard.update(particleList);
-	canvas.update(particleList);
+	canvas.update(particleList, inSession);
 });
 
 
