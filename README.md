@@ -6,7 +6,7 @@ To host, clone the repository and while in the directory run `npm install` follo
 Note: when a player gets destroyed, currently the only way to restart is by refreshing the page.
 
 ### Features to add:
-- Explain controls better.
+- ~~Explain controls better.~~
 - Add a way to restart after dying without refreshing page.
 - Sleep server activity when no one is connected.
 - Allow instancing of game.
