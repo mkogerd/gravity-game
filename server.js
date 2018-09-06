@@ -42,7 +42,7 @@ io.sockets.on('connection', (socket) => {
 	let inSession = false;
 	let playerName;
 
-	socket.on('start', (name) => {
+	socket.on('startRequest', (name) => {
 		if (inSession) return;
 		console.log('start received');
 		// Create new particle and hazard for player
@@ -55,6 +55,7 @@ io.sockets.on('connection', (socket) => {
 		particles.push(hazard);
 		inSession = true;
 		console.log(`"${name}" joined:\t ${players.length} player(s) in session`);
+		socket.emit('start');
 	});
 
 	// Update player controls 

@@ -5,14 +5,17 @@ let inSession = false;
 
 let chat = new ChatClient();
 let leaderboard = new LeaderBoard();
+let canvas;
+socket = io();
+console.log(socket);
+socket.on('connect', () => {console.log(`Socket ID: ${socket.id}`)});
 
 btn.onclick = startGame; 
 function startGame() {
 	nameInput.blur();
 	startMenu.style.display = 'none';
 	chatBox.style.display = 'block';
-	inSession = true;
-	socket.emit('start', nameInput.value);
+	socket.emit('startRequest', nameInput.value);
 }
 
 // Game focus handling
@@ -28,7 +31,21 @@ addEventListener('keydown', (event) => {
 	}
 	if (event.key == 'Escape') {
 		chat.hide();
+		canvas.cvs.focus();
 	}
+});
+
+// ---------- Socket Listeners ----------
+// Initialize environment
+socket.on('initialize', (particleList, mapWidth, mapHeight) => {
+	canvas = new Canvas(particleList, mapWidth, mapHeight);
+	canvas.animate();
+});
+
+// Start game after server generates player
+socket.on('start', () => {
+	canvas.cvs.focus();
+	inSession = true;
 });
 
 // Post new received message
@@ -39,5 +56,7 @@ socket.on('message', (name, msg) => {
 // Leaderboard handling
 socket.on('update', (particleList) => {
 	leaderboard.update(particleList);
+	canvas.update(particleList);
 });
+
 

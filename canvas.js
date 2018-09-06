@@ -1,229 +1,225 @@
-var canvas = document.querySelector("canvas");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-var c = canvas.getContext('2d');
+class Canvas {
+	constructor(particleList, mapWidth, mapHeight) {
+		// NOTE: The canvas element must have a tabindex set to allow focus (and key events)
+		this.cvs = document.getElementById("cvs");
+		this.ctx = this.cvs.getContext('2d');
+		this.cvs.width = innerWidth;
+		this.cvs.height = innerHeight;
 
+		// Canvas elements
+		this.particles = particleList;
+		this.player;
+		this.hazard;
+		this.map = {
+			width: mapWidth,
+			height: mapHeight
+		};
+		this.frame = {
+			x: mapWidth/2 - innerWidth/2,
+			y: mapHeight/2 - innerHeight/2
+		};
 
-// -------------------- Variables --------------------
-const colors = [
-	'#2F2933',
-	'#01A2A6',
-	'#29D9C2',
-	'#BDF271',
-	'#FFFFA6'
-];
-
-const control = {
-	up: false,
-	down: false,
-	left: false,
-	right: false
-}
-
-let particles;
-let player;
-let hazard;
-let frameX, frameY;
-const map = {
-	width: 0,
-	height: 0
-};
-
-// -------------------- Event Listeners --------------------
-window.addEventListener('resize', (event) => {
-	canvas.width = innerWidth;
-	canvas.height = innerHeight;
-});
-
-window.addEventListener('keydown', (event) => {
-	let update = false;
-	switch(event.key) {
-		case 'ArrowUp':
-		update = control.up ? false : true;
-		control.up = true;
-		break;
-		
-		case 'ArrowDown':
-		update = control.down ? false : true;
-		control.down = true;
-		break;
-		
-		case 'ArrowLeft':
-		update = control.left ? false : true;
-		control.left = true;
-		break;
-
-		case 'ArrowRight':
-		update = control.right ? false : true;
-		control.right = true;
-		break;
+		// Canvas event listeners
+		this.cvs.addEventListener('keydown', this.handleKeyDown.bind(this));
+		this.cvs.addEventListener('keyup', this.handleKeyUp.bind(this));
+		window.addEventListener('resize', this.handleResize.bind(this));
+		this.control = {
+			up: false,
+			down: false,
+			left: false,
+			right: false
+		}
 	}
 
-	// Only inform server if a value has changed
-	if (update) {
-		socket.emit('input', control);
-	}
-});
+	update(particleList) {
+		//console.log(this);
+		this.particles = particleList;
+		if(inSession) {
+			this.player = this.particles.find((element) => {
+				return (element.id == socket.id && element.type == 'Player');
+			});
+			this.hazard = this.particles.find((element) => {
+				return (element.id == socket.id && element.type == 'Hazard');
+			});
 
-window.addEventListener('keyup', (event) => {
-	let update = false;
-	switch(event.key) {
-		case 'ArrowUp':
-		update = control.up ? true : false;
-		control.up = false;
-		break;
+			// When player dies, stop tracking player
+			if(!this.player) {
+				inSession = false;
+				return;
+			}
+
+			// Keep camera centered on player
+			this.frame.x = this.player.x - innerWidth/2;
+			this.frame.y = this.player.y - innerHeight/2;
+
+			// Special camera work for map borders
+			if(innerWidth > this.map.width) {
+				this.frame.x = 0;
+			} else if (this.player.x < innerWidth/2) {
+				this.frame.x = 0;
+			} else if (this.player.x > this.map.width - innerWidth/2) {
+				this.frame.x = this.map.width - innerWidth;
+			} 
+
+			if(innerHeight > this.map.height) {
+				this.frame.y = 0;
+			} else if (this.player.y < innerHeight/2) {
+				this.frame.y = 0;
+			} else if (this.player.y > this.map.height - innerHeight/2) {
+				this.frame.y = this.map.height - innerHeight;
+			} 
+		}
+	}
+
+	animate() {
+		requestAnimationFrame(this.animate.bind(this));
+		this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+		this.drawBoard();
 		
-		case 'ArrowDown':
-		update = control.down ? true : false;
-		control.down = false;
-		break;
-		
-		case 'ArrowLeft':
-		update = control.left ? true : false;
-		control.left = false;
-		break;
+		// Connect player with their hazard
+		if(this.hazard && this.player)
+			this.drawTether(this.player, this.hazard);
 
-		case 'ArrowRight':
-		update = control.right ? true : false;
-		control.right = false;
-		break;
+		// Draw all entities onto map
+		if (this.particles) 
+			this.particles.forEach(this.drawParticle.bind(this));
 	}
 
-	// Only inform server if a value has changed
-	if (update) {
-		socket.emit('input', control);
+	// -------------------- Drawing Functions --------------------
+	// Draw a particle depending on its type
+	drawParticle(particle) {
+		let c = this.ctx;
+		c.save();
+		c.beginPath();
+		c.arc(particle.x - this.frame.x, particle.y - this.frame.y, particle.radius, 0, Math.PI * 2,  false);
+
+		// Draw particles according to type
+		switch(particle.type) {
+			case 'Player':
+			c.fillStyle = particle.color;
+			c.strokeStyle = 'grey';
+			c.lineWidth = 5;
+			c.stroke();
+			break;
+			
+			case 'Hazard':
+			c.fillStyle = 'black';
+			c.strokeStyle = particle.color;
+			c.lineWidth = 10;
+			c.stroke();
+			break;
+
+			case 'Photon':
+			c.fillStyle = particle.color;
+			break;	
+
+			default:
+			c.fillStyle = particle.color;
+		}
+		c.fill();
+		c.restore();
 	}
-});
 
-// -------------------- Implementation --------------------
-init();
-
-function init() {
-	console.log('Initializing...');
-	socket = io();
-	console.log(socket);
-	socket.on('connect', () => {console.log(`Socket ID: ${socket.id}`)});
-}
-
-// Initialize environment
-socket.on('initialize', (particleList, mapWidth, mapHeight) => {
-	particles = particleList;
-	map.width = mapWidth;
-	map.height = mapHeight;
-	frameX = map.width/2 - innerWidth/2;
-	frameY = map.height/2 - innerHeight/2;;
-	console.log('Map dimensions: ', map);
-	animate();
-});
-
-// Update environment
-socket.on('update', (particleList) => {
-	particles = particleList;
-	if(inSession) {
-		player = particles.find((element) => {
-			return (element.id == socket.id && element.type == 'Player');
-		});
-		hazard = particles.find((element) => {
-			return (element.id == socket.id && element.type == 'Hazard');
-		});
-
-		// Keep camera centered on player
-		frameX = player.x - innerWidth/2;
-		frameY = player.y - innerHeight/2;
-
-		// Special camera work for map borders
-		if(innerWidth > map.width) {
-			frameX = 0;
-		} else if (player.x < innerWidth/2) {
-			frameX = 0;
-		} else if (player.x > map.width - innerWidth/2) {
-			frameX = map.width - innerWidth;
-		} 
-
-		if(innerHeight > map.height) {
-			frameY = 0;
-		} else if (player.y < innerHeight/2) {
-			frameY = 0;
-		} else if (player.y > map.height - innerHeight/2) {
-			frameY = map.height - innerHeight;
-		} 
-	}
-});
-
-// Display environment
-function animate() {
-	requestAnimationFrame(animate);
-	c.clearRect(0, 0, canvas.width, canvas.height);
-	drawBoard();
-	
-	// Connect player with their hazard
-	if(hazard && player)
-		drawTether(player, hazard);
-
-	// Draw all entities onto map
-	particles.forEach(drawParticle);
-}
-
-// -------------------- Drawing functions --------------------
-function drawParticle(particle) {
-	c.save();
-	c.beginPath();
-	c.arc(particle.x - frameX, particle.y - frameY, particle.radius, 0, Math.PI * 2,  false);
-
-	// Draw particles according to type
-	switch(particle.type) {
-		case 'Player':
-		c.fillStyle = particle.color;
-		c.strokeStyle = 'grey';
-		c.lineWidth = 5;
-		c.stroke();
-		break;
-		
-		case 'Hazard':
-		c.fillStyle = 'black';
-		c.strokeStyle = particle.color;
+	// Draw tether between specified particles
+	drawTether(particle1, particle2) {
+		let c = this.ctx;
+		c.lineWidth = 1;
+		c.save();
+		c.beginPath();
+		c.moveTo(particle1.x - this.frame.x, particle1.y - this.frame.y);
+		c.lineTo(particle2.x - this.frame.x, particle2.y - this.frame.y);
+		c.strokeStyle = particle1.color;
+		c.globalAlpha = .2;
 		c.lineWidth = 10;
 		c.stroke();
-		break;
-
-		case 'Photon':
-		c.fillStyle = particle.color;
-		break;	
-
-		default:
-		c.fillStyle = particle.color;
-	}
-	c.fill();
-	c.restore();
-}
-
-function drawTether(particle1, particle2) {
-	c.lineWidth = 1;
-	c.save();
-	c.beginPath();
-	c.moveTo(particle1.x - frameX, particle1.y - frameY);
-	c.lineTo(particle2.x - frameX, particle2.y - frameY);
-	c.strokeStyle = particle1.color;
-	c.globalAlpha = .2;
-	c.lineWidth = 10;
-	c.stroke();
-	c.restore();
-}
-
-function drawBoard(){
-	c.beginPath();
-	// Draw vertical gridlines
-	for (var x = -frameX; x <= map.width-frameX; x += 40) {
-	    c.moveTo(0.5 + x, -frameY);
-	    c.lineTo(0.5 + x, map.height - frameY);
+		c.restore();
 	}
 
-	// Draw horizontal gridlines
-	for (var y = -frameY; y <= map.height-frameY; y += 40) {
-	    c.moveTo(-frameX, 0.5 + y);
-	    c.lineTo(map.width - frameX, 0.5 + y);
+	// Draw the background gridlines 
+	drawBoard() {
+		this.ctx.beginPath();
+		// Draw vertical gridlines
+		for (var x = -this.frame.x; x <= this.map.width - this.frame.x; x += 40) {
+		    this.ctx.moveTo(0.5 + x, -this.frame.y);
+		    this.ctx.lineTo(0.5 + x, this.map.height - this.frame.y);
+		}
+
+		// Draw horizontal gridlines
+		for (var y = -this.frame.y; y <= this.map.height - this.frame.y; y += 40) {
+		    this.ctx.moveTo(-this.frame.x, 0.5 + y);
+		    this.ctx.lineTo(this.map.width - this.frame.x, 0.5 + y);
+		}
+
+		this.ctx.strokeStyle = "black";
+		this.ctx.stroke();
 	}
 
-	c.strokeStyle = "black";
-	c.stroke();
+	// -------------------- Event Handlers --------------------
+	// Change direction if arrow key pressed
+	handleKeyDown(event) {
+		let update = false;
+		switch(event.key) {
+			case 'ArrowUp':
+			update = this.control.up ? false : true;
+			this.control.up = true;
+			break;
+			
+			case 'ArrowDown':
+			update = this.control.down ? false : true;
+			this.control.down = true;
+			break;
+			
+			case 'ArrowLeft':
+			update = this.control.left ? false : true;
+			this.control.left = true;
+			break;
+
+			case 'ArrowRight':
+			update = this.control.right ? false : true;
+			this.control.right = true;
+			break;
+		}
+
+		// Only inform server if a value has changed
+		if (update) {
+			socket.emit('input', this.control);
+		}
+	}
+
+	// Stop direction when arrow key released
+	handleKeyUp(event) {
+		let update = false;
+		switch(event.key) {
+			case 'ArrowUp':
+			update = this.control.up ? true : false;
+			this.control.up = false;
+			break;
+			
+			case 'ArrowDown':
+			update = this.control.down ? true : false;
+			this.control.down = false;
+			break;
+			
+			case 'ArrowLeft':
+			update = this.control.left ? true : false;
+			this.control.left = false;
+			break;
+
+			case 'ArrowRight':
+			update = this.control.right ? true : false;
+			this.control.right = false;
+			break;
+		}
+
+		// Only inform server if a value has changed
+		if (update) {
+			socket.emit('input', this.control);
+		}
+	}
+
+	// Resize the canvas to fill screen whenever screen resizes
+	handleResize() {
+		this.cvs.width = innerWidth;
+		this.cvs.height = innerHeight;
+	}
 }
