@@ -64,7 +64,8 @@ io.sockets.on('connection', (socket) => {
 
 	// Update player controls 
 	socket.on('input', (control) => {
-		player.control = control;
+		if(player != null)
+			player.control = control;
 	});
 
 	// Send message
