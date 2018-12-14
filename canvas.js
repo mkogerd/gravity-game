@@ -189,10 +189,22 @@ class Canvas {
 			this.control.right = true;
 			break;
 		}
-
+		
 		// Only inform server if a value has changed
 		if (update) {
-			socket.emit('input', this.control);
+			console.log('Key down event with ', this.control);
+			// socket.emit('input', this.control);
+			let binData = 0;
+			if (this.control.up) binData += 1;
+			if (this.control.down) binData += 2;
+			if (this.control.left) binData += 4;
+			if (this.control.right) binData += 8;
+
+			let buffer = new ArrayBuffer(2);
+			let view = new DataView(buffer);
+			view.setUint8(0, 1);
+			view.setUint8(1, binData);
+			socket.send(buffer);
 		}
 	}
 
@@ -220,10 +232,22 @@ class Canvas {
 			this.control.right = false;
 			break;
 		}
-
+		
 		// Only inform server if a value has changed
 		if (update) {
-			socket.emit('input', this.control);
+			console.log('Key up event with ', this.control);
+			//socket.emit('input', this.control);
+			let binData = 0;
+			if (this.control.up) binData += 1;
+			if (this.control.down) binData += 2;
+			if (this.control.left) binData += 4;
+			if (this.control.right) binData += 8;
+
+			let buffer = new ArrayBuffer(2);
+			let view = new DataView(buffer);
+			view.setUint8(0, 1);
+			view.setUint8(1, binData);
+			socket.send(buffer);
 		}
 	}
 

@@ -36,9 +36,12 @@ wss.on('connection', function connection(ws) {
 
 	ws.on('message', function incoming(message) {
 		let dv = new DataView(message);
-		if (dv.getUint8(0) == 0) {
+		if (dv.getUint8(0) == 0) {  // Start request
 			console.log('Start request received');
 			handleStartRequest(ws);
+		} else if (dv.getUint8(0) == 1){  // Chat Message
+			console.log('Control input received');
+			handleControl(ws, dv);
 		}
 	});
 
@@ -125,6 +128,28 @@ function handleUpdate() {
 		view.setUint16(8 + i*9, Math.floor(particles[i].radius));	// radius
 	}
 	wss.broadcast(buffer);
+}
+
+function handleControl(ws, dv) {  // This needs to be reworked
+	let msg = dv.getUint8(1);
+	let control = {
+		up: 	(msg & 0b0001),
+		down: 	(msg & 0b0010),
+		left: 	(msg & 0b0100),
+		right: 	(msg & 0b1000),
+	};
+	console.log(control);
+	// Update player controls 
+	if(ws.player != null) {
+		ws.player.control = control;
+	}
+
+	/*{
+		up: false,
+		down: false,
+		left: false,
+		right: false
+	}*/
 }
 
 // -------------- End new websocket stuff -------------------
