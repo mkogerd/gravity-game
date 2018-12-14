@@ -2,6 +2,132 @@ var app = require('express')();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 
+// -----------------   New websocket stuff --------------------
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 8080 });
+
+
+const commandEnum = {
+	INITIALIZE: 0,
+	START: 1,
+	CHATMSG: 2,
+	UPDATE: 3,
+};
+
+const typeEnum = {
+	PARTICLE: 0,
+	PLAYER: 1,
+	HAZARD: 2,
+	PHOTON: 3,
+};
+
+// Make PID array
+var pidQueue = [];
+for (var i = 1; i <= 255; i++) {
+   pidQueue.push(i);
+}
+
+wss.on('connection', function connection(ws) {
+	ws.binaryType = 'arraybuffer';
+	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
+	console.log(`pid-${ws.id} connected, currently ${wss.clients.size} sockets connected`);
+
+	ws.send(getInitData(ws)); 
+
+	ws.on('message', function incoming(message) {
+		let dv = new DataView(message);
+		if (dv.getUint8(0) == 0) {
+			console.log('Start request received');
+			handleStartRequest(ws);
+		}
+	});
+
+	ws.on('close', function close() {
+		pidQueue.push(ws.id);
+		//particles.splice(particles.indexOf(hazard), 1);
+		particles = particles.filter(particle => particle.id != ws.id);
+		console.log(`Disconnected pid-${ws.id}, only ${wss.clients.size} sockets connected`);
+	});	
+});
+
+// Broadcast to all.
+wss.broadcast = function broadcast(data) {
+	wss.clients.forEach(function each(client) {
+		if (client.readyState === WebSocket.OPEN) {
+			client.send(data);
+		}
+	});
+};
+
+function getInitData(ws)
+{
+	console.log('getting init data');
+    // Populate new client session with game entities and map dimensions
+	let buffer = new ArrayBuffer(6 + particles.length * 9);
+	let view = new DataView(buffer);
+	view.setUint8(0, 0);
+	view.setUint8(1, ws.id);
+
+	// Fill buffer with map dimensions
+	view.setUint16(2, width);
+	view.setUint16(4, height);
+	
+	// Fill in particle data
+	for (let i = 0; i < particles.length; i++) {
+		view.setUint8(6 + i*9, particles[i].id);	// ID
+		view.setUint8(7 + i*9, particles[i].type);	// type
+		view.setUint8(8 + i*9, particles[i].color);	// Color
+		view.setUint16(9 + i*9, Math.floor(particles[i].x));	// x
+		view.setUint16(11 + i*9, Math.floor(particles[i].y));	// y
+		view.setUint16(13 + i*9, Math.floor(particles[i].radius));	// radius
+	}
+
+	return buffer;
+}
+
+function handleStartRequest(ws) {
+	// Clear out old instances of player
+	for(var i = 0; i < particles.length; i++) {
+	    if (particles[i].id == ws.id) {
+	        particles.splice(i, 1);
+	        break;
+	    }
+	}
+	let name = "";
+	// Create new particle and hazard for player
+	playerName = name == "" ? "default" : name;
+	const color = Math.floor(Math.random() * colors.length);
+	ws.player = new Player(25, 25, 10, color, ws.id);
+	hazard = spawnHazard(ws.id, playerName, color);
+
+	particles.push(ws.player);
+	particles.push(hazard);
+	console.log(`"${name}" joined session`);
+
+	let buffer = new ArrayBuffer(1);
+	let view = new DataView(buffer);
+	view.setUint8(0, 1);
+	ws.send(buffer);
+}
+
+function handleUpdate() {
+	let buffer = new ArrayBuffer(1 + particles.length * 9);
+	let view = new DataView(buffer);
+	view.setUint8(0, 3);
+
+	// Fill in particle data
+	for (let i = 0; i < particles.length; i++) {
+		view.setUint8(1 + i*9, particles[i].id);	// id
+		view.setUint8(2 + i*9, particles[i].type);	// type
+		view.setUint8(3 + i*9, particles[i].color);	// Color
+		view.setUint16(4 + i*9, Math.floor(particles[i].x));	// x
+		view.setUint16(6 + i*9, Math.floor(particles[i].y));	// y
+		view.setUint16(8 + i*9, Math.floor(particles[i].radius));	// radius
+	}
+	wss.broadcast(buffer);
+}
+
+// -------------- End new websocket stuff -------------------
 
 console.log('Server running...');
 
@@ -96,7 +222,7 @@ const colors = [
 
 const width = 1500;
 const height = 1100;
-const particles = [];
+var particles = [];
 const tick = 1000/60;	// 60fps
 const sockets = [];
 const friction = 0.99;
@@ -108,9 +234,9 @@ function init() {
 	console.log('Initializing...');
 
 	// Create a bunch of random particles to interact with
-	for (let i = 0; i < 0; i++) {
+	for (let i = 0; i < 15; i++) {
 		const radius = 15;
-		const color = colors[Math.floor(Math.random() * colors.length)];
+		const color = Math.floor(Math.random() * colors.length);;
 		let x = Math.random() * (width - radius * 2) + radius;
 		let y = Math.random() * (height - radius * 2) + radius; 
 		
@@ -123,13 +249,14 @@ function init() {
 		}
 		particles.push(new Particle(x, y, radius, color));
 	}
+	console.log(particles.length);
 
 	// TO DO: Put all of these interval functions into the update function
 	// Call update routinely 
 	setInterval(update, tick);
 	// Add a new feeder particle every second if a player is in the game
 	setInterval(() => {
-		if (particles.find((particle) => { return particle.type == 'Player' }) != null)
+		if (particles.find((particle) => { return particle.type == typeEnum.PLAYER }) != null)
 				particles.push(spawnParticle())
 	}, tick*60);
 	// Emit photons every second
@@ -141,17 +268,17 @@ function init() {
 }
 
 function update() {
-	if (sockets.length != 0) {	// Only update when a socket is connected
+	if (wss.clients.size != 0) {	// Only update when a socket is connected
 		for(particle of particles) {
 			 particle.update(particles);
 		}
-		io.emit('update', particles);
+		handleUpdate();
 	}
 }
 
 function spawnParticle() {
 	const radius = 15;
-	const color = colors[Math.floor(Math.random() * colors.length)];
+	const color = Math.floor(Math.random() * colors.length);
 	let x = Math.random() * (width - radius * 2) + radius;
 	let y = Math.random() * (height - radius * 2) + radius; 
 	
@@ -181,7 +308,7 @@ function spawnHazard(id, name, color) {
 
 // -------------------- Entity objects --------------------
 function Particle(x, y, radius, color, type) {
-	this.type = type || 'Particle';
+	this.type = type || typeEnum.PARTICLE;
 	this.x = x;
 	this.y = y;
 	this.radius = radius;
@@ -226,7 +353,7 @@ function Particle(x, y, radius, color, type) {
 }
 
 function Player(x, y, radius, color, id) {
-	Particle.call(this, x, y, radius, color, 'Player');
+	Particle.call(this, x, y, radius, color, typeEnum.PLAYER);
 	this.id = id;
 	this.mass = 1;
 	this.velocity = {
@@ -275,7 +402,7 @@ function Player(x, y, radius, color, id) {
 Player.prototype = new Particle;
 
 function Hazard(x, y, radius, color, id, name) {
-	Particle.call(this, x, y, radius, color, 'Hazard');
+	Particle.call(this, x, y, radius, color, typeEnum.HAZARD);
 	this.baseRadius = radius;
 	this.mass = 1;
 	this.id = id;
@@ -329,7 +456,7 @@ function Hazard(x, y, radius, color, id, name) {
 Hazard.prototype = new Particle;
 
 function Photon(x, y, radius, color, mass, velocity) {
-	Particle.call(this, x, y, radius, color, 'Photon');
+	Particle.call(this, x, y, radius, color, typeEnum.PHOTON);
 	this.mass = mass;
 	this.id = 0;
 	this.t = 0;
@@ -342,7 +469,7 @@ function Photon(x, y, radius, color, mass, velocity) {
 		let tau = 1;
 		this.mass = mass_o*Math.exp(-this.t/tau);
 		this.t += tick; // add length of tick (ms)
-		this.color = hexToRGBA(this.rgb, ((tf - this.t)/tf));
+		//this.color = hexToRGBA(this.rgb, ((tf - this.t)/tf));
 
 		if (tf < this.t) {
 			particles.splice(particles.indexOf(this), 1);

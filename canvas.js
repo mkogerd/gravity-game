@@ -1,3 +1,17 @@
+const typeEnum = {
+	PARTICLE: 0,
+	PLAYER: 1,
+	HAZARD: 2,
+	PHOTON: 3,
+};
+const colors = [
+	'#2F2933',
+	'#01A2A6',
+	'#29D9C2',
+	'#BDF271',
+	'#FFFFA6'
+];
+
 class Canvas {
 	constructor(particleList, mapWidth, mapHeight) {
 		// NOTE: The canvas element must have a tabindex set to allow focus (and key events)
@@ -5,6 +19,7 @@ class Canvas {
 		this.ctx = this.cvs.getContext('2d');
 		this.cvs.width = innerWidth;
 		this.cvs.height = innerHeight;
+		
 
 		// Canvas elements
 		this.particles = particleList;
@@ -36,10 +51,10 @@ class Canvas {
 
 		if(trackPlayer) {
 			this.player = this.particles.find((element) => {
-				return (element.id == socket.id && element.type == 'Player');
+				return (element.id == socket.id && element.type == typeEnum.PLAYER /*'Player'*/);
 			});
 			this.hazard = this.particles.find((element) => {
-				return (element.id == socket.id && element.type == 'Hazard');
+				return (element.id == socket.id && element.type == typeEnum.HAZARD /*'Hazard'*/);
 			});
 
 			// Keep camera centered on player
@@ -89,26 +104,27 @@ class Canvas {
 
 		// Draw particles according to type
 		switch(particle.type) {
-			case 'Player':
-			c.fillStyle = particle.color;
+			case typeEnum.PLAYER:
+			c.fillStyle = colors[particle.color];
 			c.strokeStyle = 'grey';
 			c.lineWidth = 5;
 			c.stroke();
 			break;
 			
-			case 'Hazard':
+			case typeEnum.HAZARD:
 			c.fillStyle = 'black';
-			c.strokeStyle = particle.color;
+			c.strokeStyle = colors[particle.color];
 			c.lineWidth = 10;
 			c.stroke();
 			break;
 
-			case 'Photon':
-			c.fillStyle = particle.color;
+			case typeEnum.PHOTON:
+			c.fillStyle = colors[particle.color];
 			break;	
 
 			default:
-			c.fillStyle = particle.color;
+			//console.log(this.colors[particle.color]);
+			c.fillStyle = colors[particle.color];
 		}
 		c.fill();
 		c.restore();
@@ -122,7 +138,7 @@ class Canvas {
 		c.beginPath();
 		c.moveTo(particle1.x - this.frame.x, particle1.y - this.frame.y);
 		c.lineTo(particle2.x - this.frame.x, particle2.y - this.frame.y);
-		c.strokeStyle = particle1.color;
+		c.strokeStyle = colors[particle1.color];
 		c.globalAlpha = .2;
 		c.lineWidth = 10;
 		c.stroke();
