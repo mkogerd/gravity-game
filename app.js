@@ -129,6 +129,13 @@ socket.addEventListener('update', (e) => {
 		};
 		particleList.push(particle);
 	}
+
+	// Check if player was eliminated
+	if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == typeEnum.PLAYER); }) == null) { 
+		console.log('he dead');
+		onDeath();
+	}
+
 	canvas.update(particleList, inSession);
 
 
