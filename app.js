@@ -10,6 +10,7 @@ let canvas;
 // ------------------- New socket stuff ---------------------
 socket = new WebSocket('ws://localhost:8080');
 socket.binaryType = 'arraybuffer';
+const commandList = ['initialize', 'start', 'chatMsg', 'update'];
 
 socket.onopen = (event) => {
 	console.log("Connection is open");
@@ -17,12 +18,11 @@ socket.onopen = (event) => {
 };
 
 // Listen for commands from the server
-const commandList = ['initialize', 'start', 'chatMsg', 'update'];
 socket.onmessage = (event) => {
-	let dv = new DataView(event.data);
-	let command = dv.getUint8(0);
-
-	socket.dispatchEvent(new CustomEvent(commandList[command], {detail: dv}));
+	// Check command byte and call appropriate function
+	let command = new DataView(event.data).getUint8(0);
+	let data = new DataView(event.data, 1); // Byte offset of 1
+	socket.dispatchEvent(new CustomEvent(commandList[command], {detail: data}));
 };
 // ----------------------- End new socket stuff ------------------
 
@@ -63,36 +63,25 @@ addEventListener('keydown', (event) => {
 
 // ---------- Socket Listeners ----------
 // Initialize environment
-//socket.add('initialize', (particleList, mapWidth, mapHeight) => {
 socket.addEventListener('initialize', (e) => {
 	console.log('Command to initialize environment received');
-	console.log(e.detail);
+
 	let dv = e.detail;
-	socket.id = dv.getUint8(1);
-	let mapWidth = dv.getUint16(2);
-	let mapHeight = dv.getUint16(4);
-	let particleList = [];
-	for (let i = 6; i < dv.byteLength; i = i + 9) {
-		console.log(dv.getUint8(i));
-		let particle = {
-			id:		dv.getUint8(i),
-			type:	dv.getUint8(i + 1),
-			color:	dv.getUint8(i + 2),
-			x:		dv.getUint16(i + 3),
-			y:		dv.getUint16(i + 5),
-			radius: dv.getUint16(i + 7),
-		};
-		particleList.push(particle);
-	}
-	console.log('width: ' + mapWidth + ', height: ' + mapHeight);
-	console.log(particleList);
-	console.log('PID: ' + socket.id);
+	socket.id = dv.getUint8(0);
+	let mapWidth = dv.getUint16(1);
+	let mapHeight = dv.getUint16(3);
+
+	// Extract game state from message
+	let particleList = decodeParticleList(new DataView(dv.buffer, 6));
+
+	//console.log('width: ' + mapWidth + ', height: ' + mapHeight);
+	//console.log(particleList);
+	//console.log('PID: ' + socket.id);
 	canvas = new Canvas(particleList, mapWidth, mapHeight);
 	canvas.animate();
 });
 
 // Start game after server generates player
-//socket.on('start', () => {
 socket.addEventListener('start', (e) => {
 	console.log('Command to start game received');
 	canvas.cvs.focus();
@@ -109,9 +98,23 @@ socket.addEventListener('chatMsg', (e) => {
 // Leaderboard handling
 socket.addEventListener('update', (e) => {
 	// Extract game state from message
-	let dv = e.detail;
+	let particleList = decodeParticleList(e.detail);
+
+	// Check if player was eliminated
+	if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == typeEnum.PLAYER); }) == null) { 
+		onDeath();
+	}
+
+	// Update canvas element with gamestate
+	canvas.update(particleList, inSession);
+});
+
+
+// ---------- Helper Functions ----------
+function decodeParticleList(dv) {
 	let particleList = [];
-	for (let i = 1; i < dv.byteLength; i = i + 9) {
+	let particleByteSize = 9;
+	for (let i = 0; i < dv.byteLength; i = i + particleByteSize) {
 		let particle = {
 			id:		dv.getUint8(i),
 			type:	dv.getUint8(i + 1),
@@ -122,16 +125,6 @@ socket.addEventListener('update', (e) => {
 		};
 		particleList.push(particle);
 	}
-
-	// Check if player was eliminated
-	if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == typeEnum.PLAYER); }) == null) { 
-		onDeath();
-	}
-
-	// Update canvas element with gamestate
-	canvas.update(particleList, inSession);
-
-
-});
-
+	return particleList;
+}
 
