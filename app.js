@@ -107,15 +107,8 @@ socket.addEventListener('chatMsg', (e) => {
 });
 
 // Leaderboard handling
-//socket.on('update', (particleList) => {
 socket.addEventListener('update', (e) => {
-	//console.log('Command to update leaderboard and canvas recieved');
-	// Check if player was eliminated
-	//if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == 'Player'); }) == null) 
-	//	onDeath();
-
-	//leaderboard.update(particleList);
-	//canvas.update(particleList, inSession);
+	// Extract game state from message
 	let dv = e.detail;
 	let particleList = [];
 	for (let i = 1; i < dv.byteLength; i = i + 9) {
@@ -132,10 +125,10 @@ socket.addEventListener('update', (e) => {
 
 	// Check if player was eliminated
 	if (inSession && particleList.find((particle) => { return (particle.id == socket.id && particle.type == typeEnum.PLAYER); }) == null) { 
-		console.log('he dead');
 		onDeath();
 	}
 
+	// Update canvas element with gamestate
 	canvas.update(particleList, inSession);
 
 
