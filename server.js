@@ -40,7 +40,7 @@ wss.on('connection', function connection(ws) {
 			console.log('Start request received');
 			handleStartRequest(ws);
 		} else if (dv.getUint8(0) == 1){  // Chat Message
-			console.log('Control input received');
+			//console.log('Control input received');
 			handleControl(ws, dv);
 		}
 	});
@@ -138,7 +138,7 @@ function handleControl(ws, dv) {  // This needs to be reworked
 		left: 	(msg & 0b0100),
 		right: 	(msg & 0b1000),
 	};
-	console.log(control);
+
 	// Update player controls 
 	if(ws.player != null) {
 		ws.player.control = control;

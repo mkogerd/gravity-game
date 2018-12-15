@@ -192,8 +192,6 @@ class Canvas {
 		
 		// Only inform server if a value has changed
 		if (update) {
-			console.log('Key down event with ', this.control);
-			// socket.emit('input', this.control);
 			let binData = 0;
 			if (this.control.up) binData += 1;
 			if (this.control.down) binData += 2;
@@ -235,8 +233,6 @@ class Canvas {
 		
 		// Only inform server if a value has changed
 		if (update) {
-			console.log('Key up event with ', this.control);
-			//socket.emit('input', this.control);
 			let binData = 0;
 			if (this.control.up) binData += 1;
 			if (this.control.down) binData += 2;

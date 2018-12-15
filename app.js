@@ -19,7 +19,6 @@ socket.onopen = (event) => {
 
 // Listen for commands from the server
 socket.onmessage = (event) => {
-	// Check command byte and call appropriate function
 	let command = new DataView(event.data).getUint8(0);
 	let data = new DataView(event.data, 1); // Byte offset of 1
 	socket.dispatchEvent(new CustomEvent(commandList[command], {detail: data}));
@@ -107,6 +106,7 @@ socket.addEventListener('update', (e) => {
 
 	// Update canvas element with gamestate
 	canvas.update(particleList, inSession);
+	leaderboard.update(particleList);
 });
 
 
