@@ -10,7 +10,16 @@ let canvas;
 // ------------------- New socket stuff ---------------------
 socket = new WebSocket('ws://localhost:8080');
 socket.binaryType = 'arraybuffer';
+
+// Incoming communications
 const commandList = ['initialize', 'start', 'chatMsg', 'update'];
+
+// Outgoing communications
+const commandEnum = {
+	STARTREQ: 0,
+	CTRLUPDATE: 1,
+	SENDMSG: 2,
+};
 
 socket.onopen = (event) => {
 	console.log("Connection is open");
@@ -30,7 +39,7 @@ function startGame() {
 	nameInput.blur();
 	startMenu.style.display = 'none';
 	chatBox.style.display = 'block';
-	socket.send(new Uint8Array([0, 0, 0, 0]).buffer);
+	socket.send(new Uint8Array([commandEnum.STARTREQ]).buffer);
 }
 
 function onDeath() {
@@ -90,8 +99,11 @@ socket.addEventListener('start', (e) => {
 // Post new received message
 //socket.on('message', (name, msg) => {
 socket.addEventListener('chatMsg', (e) => {
-	console.log('Command to append chat message received');
-	//chat.appendMsg(name, msg);
+	let dec = new TextDecoder("utf-8");
+	let id = e.detail.getUint8(0)
+	let binaryMsg = new DataView(e.detail.buffer, e.detail.byteOffset +1);
+	let msg = dec.decode(binaryMsg);
+	chat.appendMsg(id, msg);
 });
 
 // Leaderboard handling

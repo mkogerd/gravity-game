@@ -1,17 +1,22 @@
 var app = require('express')();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+const util = require('util'); // For TextEncoder and TextDecoder
 
 // -----------------   New websocket stuff --------------------
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 
+// Incoming communications
+const commandList = ['startReq', 'controlInput', 'chatMessage'];
 
+// Outgoing communications
 const commandEnum = {
 	INITIALIZE: 0,
 	START: 1,
 	CHATMSG: 2,
 	UPDATE: 3,
+	NEWPLAYER: 4,
 };
 
 const typeEnum = {
@@ -39,9 +44,10 @@ wss.on('connection', function connection(ws) {
 		if (dv.getUint8(0) == 0) {  // Start request
 			console.log('Start request received');
 			handleStartRequest(ws);
-		} else if (dv.getUint8(0) == 1){  // Chat Message
-			//console.log('Control input received');
+		} else if (dv.getUint8(0) == 1) {  // Control input
 			handleControl(ws, dv);
+		} else if (dv.getUint8(0) == 2) {  // Message received
+			handleChatMessage(ws, dv);
 		}
 	});
 
@@ -97,6 +103,7 @@ function handleStartRequest(ws) {
 	    }
 	}
 	let name = "";
+	
 	// Create new particle and hazard for player
 	playerName = name == "" ? "default" : name;
 	const color = Math.floor(Math.random() * colors.length);
@@ -143,13 +150,23 @@ function handleControl(ws, dv) {  // This needs to be reworked
 	if(ws.player != null) {
 		ws.player.control = control;
 	}
+}
 
-	/*{
-		up: false,
-		down: false,
-		left: false,
-		right: false
-	}*/
+function handleChatMessage(ws, dv) {
+	console.log(`Message received from pid-${ws.id}: `);
+	let data = new ArrayBuffer(dv.byteLength + 1);
+
+	// Set header
+	let header = new DataView(data, 0, 2);
+	header.setUint8(0, commandEnum.CHATMSG);
+	header.setUint8(1, ws.id);
+
+	// Set payload
+	let payload = new Uint8Array(data, 2);
+	let message = new Uint8Array(dv.buffer, 1);
+	payload.set(message);
+
+	wss.broadcast(data);
 }
 
 // -------------- End new websocket stuff -------------------

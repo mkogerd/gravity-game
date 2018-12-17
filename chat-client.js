@@ -11,7 +11,21 @@ class ChatClient {
 		var key = e.which || e.keyCode || 0;
 		if (key === 13) {
 			if (this.input.value !== '') {
-				socket.emit('message', this.input.value);
+				let data = new ArrayBuffer(this.input.value.length + 1);
+
+				// Set header
+				let header = new DataView(data, 0, 1);
+				header.setUint8(0, commandEnum.SENDMSG);
+
+				// Set payload
+				let payload = new Uint8Array(data, 1);
+				let enc = new TextEncoder('utf-8');
+				let message = enc.encode(this.input.value);
+				payload.set(message);
+
+				socket.send(data);
+				
+				// Clear input
 				this.input.value = "";
 			}
 		}

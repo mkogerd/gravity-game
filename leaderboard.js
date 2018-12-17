@@ -15,8 +15,8 @@ class LeaderBoard {
 		hazards.sort((a,b) => {
 			return (a.radius > b.radius) ? -1 : ((b.radius > a.radius) ? 1 : 0);
 		});
-		console.log('leaderboard updating');
-		console.log(hazards)
+		//console.log('leaderboard updating');
+		//console.log(hazards)
 		
 		// Fill leaderboard
 		let leaderUpdateStr = '';

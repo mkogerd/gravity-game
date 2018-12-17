@@ -200,7 +200,7 @@ class Canvas {
 
 			let buffer = new ArrayBuffer(2);
 			let view = new DataView(buffer);
-			view.setUint8(0, 1);
+			view.setUint8(0, commandEnum.CTRLUPDATE);
 			view.setUint8(1, binData);
 			socket.send(buffer);
 		}
@@ -241,7 +241,7 @@ class Canvas {
 
 			let buffer = new ArrayBuffer(2);
 			let view = new DataView(buffer);
-			view.setUint8(0, 1);
+			view.setUint8(0, commandEnum.CTRLUPDATE);
 			view.setUint8(1, binData);
 			socket.send(buffer);
 		}
