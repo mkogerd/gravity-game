@@ -26,10 +26,14 @@ const typeEnum = {
 	PHOTON: 3,
 };
 
-// Make PID array
+// Track player names associated with PIDs
+const playerList = new Array(256);
+
+// Queue of PIDs to hand out when players request to start games 
 var pidQueue = [];
 for (var i = 1; i <= 255; i++) {
    pidQueue.push(i);
+
 }
 
 wss.on('connection', function connection(ws) {
@@ -37,13 +41,21 @@ wss.on('connection', function connection(ws) {
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
 	console.log(`pid-${ws.id} connected, currently ${wss.clients.size} sockets connected`);
 
-	ws.send(getInitData(ws)); 
+	// Send map initialization
+	ws.send(getInitData(ws));
+
+	// Send current player names
+	for (let i = 1; i <= 255; i++) {
+		if (playerList[i]) {
+			ws.send(getAddNameMsg(i, playerList[i]));
+		}
+	}
 
 	ws.on('message', function incoming(message) {
 		let dv = new DataView(message);
 		if (dv.getUint8(0) == 0) {  // Start request
 			console.log('Start request received');
-			handleStartRequest(ws);
+			handleStartRequest(ws, dv);
 		} else if (dv.getUint8(0) == 1) {  // Control input
 			handleControl(ws, dv);
 		} else if (dv.getUint8(0) == 2) {  // Message received
@@ -53,7 +65,7 @@ wss.on('connection', function connection(ws) {
 
 	ws.on('close', function close() {
 		pidQueue.push(ws.id);
-		//particles.splice(particles.indexOf(hazard), 1);
+		playerList[ws.id] = undefined;
 		particles = particles.filter(particle => particle.id != ws.id);
 		console.log(`Disconnected pid-${ws.id}, only ${wss.clients.size} sockets connected`);
 	});	
@@ -68,8 +80,7 @@ wss.broadcast = function broadcast(data) {
 	});
 };
 
-function getInitData(ws)
-{
+function getInitData(ws) {
 	console.log('getting init data');
     // Populate new client session with game entities and map dimensions
 	let buffer = new ArrayBuffer(6 + particles.length * 9);
@@ -94,7 +105,36 @@ function getInitData(ws)
 	return buffer;
 }
 
-function handleStartRequest(ws) {
+function getAddNameMsg(id, name) {
+	// Create broadcast message
+	let data = new ArrayBuffer(name.length + 2);
+
+	// Set header
+	let header = new DataView(data, 0, 2);
+	header.setUint8(0, commandEnum.NEWPLAYER);
+	header.setUint8(1, id);
+
+	// Set payload
+	let payload = new Uint8Array(data, 2);
+	let enc = new util.TextEncoder('utf-8');
+	binaryName = enc.encode(name);
+	payload.set(binaryName);
+
+	return data;
+}
+
+
+function handleStartRequest(ws, dv) {
+	// Get name from request
+	let dec = new util.TextDecoder('utf-8');
+	let binaryName = new DataView(dv.buffer, dv.byteOffset +1);
+	let name = dec.decode(binaryName);
+	name = (name == "") ? "default" : name;	// Add default name for blank names
+
+	// Update PID/name associations
+	playerList[ws.id] = name;
+	wss.broadcast(getAddNameMsg(ws.id, name));
+
 	// Clear out old instances of player
 	for(var i = 0; i < particles.length; i++) {
 	    if (particles[i].id == ws.id) {
@@ -102,7 +142,6 @@ function handleStartRequest(ws) {
 	        break;
 	    }
 	}
-	let name = "";
 	
 	// Create new particle and hazard for player
 	playerName = name == "" ? "default" : name;

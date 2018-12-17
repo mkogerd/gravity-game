@@ -6,13 +6,14 @@ let inSession = false;
 let chat = new ChatClient();
 let leaderboard = new LeaderBoard();
 let canvas;
+const playerList = new  Array(256);	// Length should match max number of possible PIDs
 
 // ------------------- New socket stuff ---------------------
 socket = new WebSocket('ws://localhost:8080');
 socket.binaryType = 'arraybuffer';
 
 // Incoming communications
-const commandList = ['initialize', 'start', 'chatMsg', 'update'];
+const commandList = ['initialize', 'start', 'chatMsg', 'update', 'addPlayer', 'removePlayer'];
 
 // Outgoing communications
 const commandEnum = {
@@ -39,7 +40,21 @@ function startGame() {
 	nameInput.blur();
 	startMenu.style.display = 'none';
 	chatBox.style.display = 'block';
-	socket.send(new Uint8Array([commandEnum.STARTREQ]).buffer);
+
+	// Create start request
+	let data = new ArrayBuffer(nameInput.value.length + 1);
+
+	// Set header
+	let header = new DataView(data, 0, 1);
+	header.setUint8(0, commandEnum.STARTREQ);
+
+	// Set payload
+	let payload = new Uint8Array(data, 1);
+	let enc = new TextEncoder('utf-8');
+	let name = enc.encode(nameInput.value);
+	payload.set(name);
+
+	socket.send(data);
 }
 
 function onDeath() {
@@ -97,16 +112,15 @@ socket.addEventListener('start', (e) => {
 });
 
 // Post new received message
-//socket.on('message', (name, msg) => {
 socket.addEventListener('chatMsg', (e) => {
 	let dec = new TextDecoder("utf-8");
 	let id = e.detail.getUint8(0)
-	let binaryMsg = new DataView(e.detail.buffer, e.detail.byteOffset +1);
+	let binaryMsg = new DataView(e.detail.buffer, e.detail.byteOffset + 1);
 	let msg = dec.decode(binaryMsg);
-	chat.appendMsg(id, msg);
+	chat.appendMsg(playerList[id], msg);
 });
 
-// Leaderboard handling
+// Update leaderboard and canvas
 socket.addEventListener('update', (e) => {
 	// Extract game state from message
 	let particleList = decodeParticleList(e.detail);
@@ -121,6 +135,14 @@ socket.addEventListener('update', (e) => {
 	leaderboard.update(particleList);
 });
 
+// Add new player name / PID association (mainly for chat)
+socket.addEventListener('addPlayer', (e) => {
+	let dec = new TextDecoder('utf-8');
+	let id = e.detail.getUint8(0)
+	let payload = new DataView(e.detail.buffer, e.detail.byteOffset + 1);
+	let name = dec.decode(payload);
+	playerList[id] = name;
+});
 
 // ---------- Helper Functions ----------
 function decodeParticleList(dv) {
