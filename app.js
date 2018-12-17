@@ -63,6 +63,7 @@ function onDeath() {
 	startMenu.style.display = 'block';
 	chatBox.style.display = 'none';
 	nameInput.focus();
+	
 	// Clear arrow input status
 	Object.keys(canvas.control).forEach(dir => canvas.control[dir] = false);
 }

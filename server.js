@@ -1,6 +1,5 @@
-var app = require('express')();
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
+const app = require('express')();
+const server = require('http').createServer(app);
 const util = require('util'); // For TextEncoder and TextDecoder
 
 // -----------------   New websocket stuff --------------------
@@ -235,59 +234,6 @@ app.get('/app.js', (req, res) => {
 
 app.get('/main.css', (req, res) => {
 	res.sendFile(__dirname + '/main.css');
-});
-// set up connection	
-io.sockets.on('connection', (socket) => {
-	sockets.push(socket.id);
-	console.log(`Socket id:${socket.id} connected, ${sockets.length} sockets connected`);
-	const color = colors[Math.floor(Math.random() * colors.length)];
-
-	// Populate new client session with game entities and map dimensions
-	socket.emit('initialize', particles, width, height); 
-	
-	let player;
-	let hazard;
-	let playerName;
-
-	socket.on('startRequest', (name) => {
-		// Clear out old instances of player
-		for(var i = 0; i < particles.length; i++) {
-		    if (particles[i].id == socket.id) {
-		        particles.splice(i, 1);
-		        break;
-		    }
-		}
-
-		// Create new particle and hazard for player
-		playerName = name == "" ? "default" : name;
-		player = new Player(25, 25, 10, color, socket.id);
-		hazard = spawnHazard(socket.id, playerName, color);
-
-		particles.push(player);
-		particles.push(hazard);
-		console.log(`"${name}" joined session`);
-		socket.emit('start');
-	});
-
-	// Update player controls 
-	socket.on('input', (control) => {
-		if(player != null)
-			player.control = control;
-	});
-
-	// Send message
-	socket.on('message', (msg) => {
-		console.log(`"${playerName}" says: ${msg}`);
-		io.emit('message', playerName, msg);
-	});
-	
-	// Disconnect
-	socket.on('disconnect', (data) => {
-		particles.splice(particles.indexOf(hazard), 1);
-		sockets.splice(particles.indexOf(socket.id), 1);
-		if (particles.indexOf(player) != -1) particles.splice(particles.indexOf(player), 1);
-		console.log(`Disconnected, only ${sockets.length} sockets connected`);
-	});
 });
 
 server.listen(process.env.PORT || 3000);
