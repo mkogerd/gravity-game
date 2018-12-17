@@ -38,7 +38,7 @@ for (var i = 1; i <= 255; i++) {
 wss.on('connection', function connection(ws) {
 	ws.binaryType = 'arraybuffer';
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
-	console.log(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected`);
+	console.log(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected - ${new Date()}`);
 
 	// Send map initialization
 	ws.send(getInitData(ws));
