@@ -23,8 +23,8 @@ const commandEnum = {
 };
 
 socket.onopen = (event) => {
-	console.log("Connection is open");
-	console.log(socket);
+	//console.log("Connection is open");
+	//console.log(socket);
 };
 
 // Listen for commands from the server
@@ -88,8 +88,6 @@ addEventListener('keydown', (event) => {
 // ---------- Socket Listeners ----------
 // Initialize environment
 socket.addEventListener('initialize', (e) => {
-	console.log('Command to initialize environment received');
-
 	let dv = e.detail;
 	socket.id = dv.getUint8(0);
 	let mapWidth = dv.getUint16(1);
@@ -107,7 +105,6 @@ socket.addEventListener('initialize', (e) => {
 
 // Start game after server generates player
 socket.addEventListener('start', (e) => {
-	console.log('Command to start game received');
 	canvas.cvs.focus();
 	inSession = true;
 });

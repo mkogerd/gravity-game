@@ -38,7 +38,7 @@ for (var i = 1; i <= 255; i++) {
 wss.on('connection', function connection(ws) {
 	ws.binaryType = 'arraybuffer';
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
-	console.log(`pid-${ws.id} connected, currently ${wss.clients.size} sockets connected`);
+	console.log(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected`);
 
 	// Send map initialization
 	ws.send(getInitData(ws));
@@ -53,7 +53,6 @@ wss.on('connection', function connection(ws) {
 	ws.on('message', function incoming(message) {
 		let dv = new DataView(message);
 		if (dv.getUint8(0) == 0) {  // Start request
-			console.log('Start request received');
 			handleStartRequest(ws, dv);
 		} else if (dv.getUint8(0) == 1) {  // Control input
 			handleControl(ws, dv);
@@ -66,7 +65,7 @@ wss.on('connection', function connection(ws) {
 		pidQueue.push(ws.id);
 		playerList[ws.id] = undefined;
 		particles = particles.filter(particle => particle.id != ws.id);
-		console.log(`Disconnected pid-${ws.id}, only ${wss.clients.size} sockets connected`);
+		console.log(`(ID:${ws.id}) disconnected, only ${wss.clients.size} sockets connected`);
 	});	
 });
 
@@ -80,7 +79,6 @@ wss.broadcast = function broadcast(data) {
 };
 
 function getInitData(ws) {
-	console.log('getting init data');
     // Populate new client session with game entities and map dimensions
 	let buffer = new ArrayBuffer(6 + particles.length * 9);
 	let view = new DataView(buffer);
@@ -191,7 +189,6 @@ function handleControl(ws, dv) {  // This needs to be reworked
 }
 
 function handleChatMessage(ws, dv) {
-	console.log(`Message received from pid-${ws.id}: `);
 	let data = new ArrayBuffer(dv.byteLength + 1);
 
 	// Set header
@@ -204,6 +201,7 @@ function handleChatMessage(ws, dv) {
 	let message = new Uint8Array(dv.buffer, 1);
 	payload.set(message);
 
+	console.log(`${playerList[ws.id]} (ID:${ws.id}): ${new util.TextDecoder('utf-8').decode(message)}`);
 	wss.broadcast(data);
 }
 
@@ -276,7 +274,6 @@ function init() {
 		}
 		particles.push(new Particle(x, y, radius, color));
 	}
-	console.log(particles.length);
 
 	// TO DO: Put all of these interval functions into the update function
 	// Call update routinely 
