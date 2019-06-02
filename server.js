@@ -35,7 +35,14 @@ for (var i = 1; i <= 255; i++) {
 
 }
 
+
 wss.on('connection', function connection(ws) {
+	// Testing out error handling
+	ws.onerror = (evt) => {
+		console.log('An error had occured in our ws connection');
+		return;
+	}
+
 	ws.binaryType = 'arraybuffer';
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
 	console.log(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected - ${new Date()}`);
