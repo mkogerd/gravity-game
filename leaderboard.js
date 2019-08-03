@@ -21,7 +21,7 @@ class LeaderBoard {
 		
 		// Fill leaderboard
 		for (let i = 0; (i < this.numLeaders) && (i < hazards.length); i++) {
-			this.list.children[i].innerText = `${playerList[hazards[i].id]} +- ${hazards[i].radius}`;
+			this.list.children[i].innerText = `${playerList[hazards[i].id]} - ${hazards[i].radius}`;
 		}
 	}
 }
