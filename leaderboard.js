@@ -2,6 +2,9 @@ class LeaderBoard {
 	constructor() {
 		this.list = document.getElementById('leaderList');
 		this.numLeaders = 5;
+		for (let i = 0; i < this.numLeaders; i++) {
+			this.list.appendChild(document.createElement("li"));
+		}
 	}
 
 	// Update
@@ -17,12 +20,8 @@ class LeaderBoard {
 		});
 		
 		// Fill leaderboard
-		let leaderUpdateStr = '';
-		for (let i = 0; i < this.numLeaders; i++) {
-			if(i < hazards.length)
-				leaderUpdateStr += '<li>' + playerList[hazards[i].id] + ' - ' + hazards[i].radius + '</li>';	
-			else leaderUpdateStr += '<li></li>';
+		for (let i = 0; (i < this.numLeaders) && (i < hazards.length); i++) {
+			this.list.children[i].innerText = `${playerList[hazards[i].id]} +- ${hazards[i].radius}`;
 		}
-		this.list.innerHTML = leaderUpdateStr;
 	}
 }
