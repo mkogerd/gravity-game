@@ -33,9 +33,16 @@ class ChatClient {
 
 	// Append a new line to the chatbox
 	appendMsg(name, msg) {
-		var x = document.createElement("li");
-		x.innerHTML = '<b>' + name + '</b>: ' + msg;
-		this.feed.appendChild(x);
+		// Sanitize inputs
+		const nametag = document.createElement("b");
+		nametag.innerText = `${name}: `;
+		const message = document.createTextNode(msg);
+
+		// Post message
+		const post = document.createElement("li");
+		post.appendChild(nametag);
+		post.appendChild(message);
+		this.feed.appendChild(post);
 		this.feed.scrollTo(0, this.feed.scrollHeight);
 	}
 
