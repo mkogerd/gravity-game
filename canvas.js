@@ -19,7 +19,7 @@ class Canvas {
 		this.ctx = this.cvs.getContext('2d');
 		this.cvs.width = innerWidth;
 		this.cvs.height = innerHeight;
-		
+
 
 		// Canvas elements
 		this.particles = particleList;
@@ -34,9 +34,15 @@ class Canvas {
 			y: mapHeight/2 - innerHeight/2
 		};
 
-		// Canvas event listeners
+		// Keyboard controls
 		this.cvs.addEventListener('keydown', this.handleKeyDown.bind(this));
 		this.cvs.addEventListener('keyup', this.handleKeyUp.bind(this));
+
+		// Mobile controls
+		this.cvs.addEventListener('touchstart', this.handleTouch.bind(this));
+		this.cvs.addEventListener('touchmove', this.handleTouch.bind(this));
+		this.cvs.addEventListener('touchend', this.handleTouchEnd.bind(this));
+
 		window.addEventListener('resize', this.handleResize.bind(this));
 		this.control = {
 			up: false,
@@ -68,7 +74,7 @@ class Canvas {
 				this.frame.x = 0;
 			} else if (this.player.x > this.map.width - innerWidth/2) {
 				this.frame.x = this.map.width - innerWidth;
-			} 
+			}
 
 			if(innerHeight > this.map.height) {
 				this.frame.y = 0;
@@ -76,7 +82,7 @@ class Canvas {
 				this.frame.y = 0;
 			} else if (this.player.y > this.map.height - innerHeight/2) {
 				this.frame.y = this.map.height - innerHeight;
-			} 
+			}
 		}
 	}
 
@@ -84,13 +90,13 @@ class Canvas {
 		requestAnimationFrame(this.animate.bind(this));
 		this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
 		this.drawBoard();
-		
+
 		// Connect player with their hazard
 		if(this.hazard && this.player)
 			this.drawTether(this.player, this.hazard);
 
 		// Draw all entities onto map
-		if (this.particles) 
+		if (this.particles)
 			this.particles.forEach(this.drawParticle.bind(this));
 	}
 
@@ -110,7 +116,7 @@ class Canvas {
 			c.lineWidth = 5;
 			c.stroke();
 			break;
-			
+
 			case typeEnum.HAZARD:
 			c.fillStyle = 'black';
 			c.strokeStyle = colors[particle.color];
@@ -120,7 +126,7 @@ class Canvas {
 
 			case typeEnum.PHOTON:
 			c.fillStyle = colors[particle.color];
-			break;	
+			break;
 
 			default:
 			//console.log(this.colors[particle.color]);
@@ -145,7 +151,7 @@ class Canvas {
 		c.restore();
 	}
 
-	// Draw the background gridlines 
+	// Draw the background gridlines
 	drawBoard() {
 		this.ctx.beginPath();
 		// Draw vertical gridlines
@@ -173,12 +179,12 @@ class Canvas {
 			update = this.control.up ? false : true;
 			this.control.up = true;
 			break;
-			
+
 			case 'ArrowDown':
 			update = this.control.down ? false : true;
 			this.control.down = true;
 			break;
-			
+
 			case 'ArrowLeft':
 			update = this.control.left ? false : true;
 			this.control.left = true;
@@ -189,7 +195,7 @@ class Canvas {
 			this.control.right = true;
 			break;
 		}
-		
+
 		// Only inform server if a value has changed
 		if (update) {
 			let binData = 0;
@@ -214,12 +220,12 @@ class Canvas {
 			update = this.control.up ? true : false;
 			this.control.up = false;
 			break;
-			
+
 			case 'ArrowDown':
 			update = this.control.down ? true : false;
 			this.control.down = false;
 			break;
-			
+
 			case 'ArrowLeft':
 			update = this.control.left ? true : false;
 			this.control.left = false;
@@ -230,9 +236,82 @@ class Canvas {
 			this.control.right = false;
 			break;
 		}
-		
+
 		// Only inform server if a value has changed
 		if (update) {
+			let binData = 0;
+			if (this.control.up) binData += 1;
+			if (this.control.down) binData += 2;
+			if (this.control.left) binData += 4;
+			if (this.control.right) binData += 8;
+
+			let buffer = new ArrayBuffer(2);
+			let view = new DataView(buffer);
+			view.setUint8(0, commandEnum.CTRLUPDATE);
+			view.setUint8(1, binData);
+			socket.send(buffer);
+		}
+	}
+
+	handleTouch(e) {
+		const deltaX = e.touches[0].clientX - innerWidth/2;
+		const deltaY = e.touches[0].clientY - innerHeight/2;
+		const degree = Math.atan2(deltaY, deltaX);
+
+		let update = {
+			up: false,
+			down: false,
+			left: false,
+			right: false
+		};
+		if (degree < (Math.PI / 8 * 3) && degree > (-Math.PI / 8 * 3)) {
+			update.right = true;
+		}
+		if (degree < (-Math.PI / 8 ) && degree > (-Math.PI / 8 * 7)) {
+			update.up = true;
+		}
+		if (degree > (Math.PI / 8 ) && degree < (Math.PI / 8 * 7)) {
+			update.down = true;
+		}
+		if (degree < (-Math.PI / 8 * 5) || degree > (Math.PI / 8 * 5)) {
+			update.left = true;
+		}
+
+		// Only inform server if a value has changed
+		if (update.up != this.control.up
+			|| update.down != this.control.down
+			|| update.left != this.control.left
+			|| update.right != this.control.right) {
+			this.control = update;
+			let binData = 0;
+			if (this.control.up) binData += 1;
+			if (this.control.down) binData += 2;
+			if (this.control.left) binData += 4;
+			if (this.control.right) binData += 8;
+
+			let buffer = new ArrayBuffer(2);
+			let view = new DataView(buffer);
+			view.setUint8(0, commandEnum.CTRLUPDATE);
+			view.setUint8(1, binData);
+			socket.send(buffer);
+		}
+	}
+
+	handleTouchEnd(e) {
+		let update = {
+			up: false,
+			down: false,
+			left: false,
+			right: false
+		};
+
+		// Only inform server if a value has changed
+		if (update.up != this.control.up
+			|| update.down != this.control.down
+			|| update.left != this.control.left
+			|| update.right != this.control.right) {
+			this.control = update;
+
 			let binData = 0;
 			if (this.control.up) binData += 1;
 			if (this.control.down) binData += 2;
