@@ -42,6 +42,7 @@ class Canvas {
 		this.cvs.addEventListener('touchstart', this.handleTouch.bind(this));
 		this.cvs.addEventListener('touchmove', this.handleTouch.bind(this));
 		this.cvs.addEventListener('touchend', this.handleTouchEnd.bind(this));
+		this.cvs.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
 
 		window.addEventListener('resize', this.handleResize.bind(this));
 		this.control = {
@@ -254,8 +255,9 @@ class Canvas {
 	}
 
 	handleTouch(e) {
-		const deltaX = e.touches[0].clientX - innerWidth/2;
-		const deltaY = e.touches[0].clientY - innerHeight/2;
+		// Calculate pixel distance between player and touch event
+		const deltaX = e.touches[0].clientX - (this.player.x - this.frame.x);
+		const deltaY = e.touches[0].clientY - (this.player.y - this.frame.y);
 		const degree = Math.atan2(deltaY, deltaX);
 
 		let update = {
