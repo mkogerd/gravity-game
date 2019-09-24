@@ -255,47 +255,52 @@ class Canvas {
 	}
 
 	handleTouch(e) {
-		// Calculate pixel distance between player and touch event
-		const deltaX = e.touches[0].clientX - (this.player.x - this.frame.x);
-		const deltaY = e.touches[0].clientY - (this.player.y - this.frame.y);
-		const degree = Math.atan2(deltaY, deltaX);
+		try {
+			// Calculate pixel distance between player and touch event
+			const deltaX = e.touches[0].clientX - (this.player.x - this.frame.x);
+			const deltaY = e.touches[0].clientY - (this.player.y - this.frame.y);
+			const degree = Math.atan2(deltaY, deltaX);
 
-		let update = {
-			up: false,
-			down: false,
-			left: false,
-			right: false
-		};
-		if (degree < (Math.PI / 8 * 3) && degree > (-Math.PI / 8 * 3)) {
-			update.right = true;
-		}
-		if (degree < (-Math.PI / 8 ) && degree > (-Math.PI / 8 * 7)) {
-			update.up = true;
-		}
-		if (degree > (Math.PI / 8 ) && degree < (Math.PI / 8 * 7)) {
-			update.down = true;
-		}
-		if (degree < (-Math.PI / 8 * 5) || degree > (Math.PI / 8 * 5)) {
-			update.left = true;
-		}
+			let update = {
+				up: false,
+				down: false,
+				left: false,
+				right: false
+			};
+			if (degree < (Math.PI / 8 * 3) && degree > (-Math.PI / 8 * 3)) {
+				update.right = true;
+			}
+			if (degree < (-Math.PI / 8 ) && degree > (-Math.PI / 8 * 7)) {
+				update.up = true;
+			}
+			if (degree > (Math.PI / 8 ) && degree < (Math.PI / 8 * 7)) {
+				update.down = true;
+			}
+			if (degree < (-Math.PI / 8 * 5) || degree > (Math.PI / 8 * 5)) {
+				update.left = true;
+			}
 
-		// Only inform server if a value has changed
-		if (update.up != this.control.up
-			|| update.down != this.control.down
-			|| update.left != this.control.left
-			|| update.right != this.control.right) {
-			this.control = update;
-			let binData = 0;
-			if (this.control.up) binData += 1;
-			if (this.control.down) binData += 2;
-			if (this.control.left) binData += 4;
-			if (this.control.right) binData += 8;
+			// Only inform server if a value has changed
+			if (update.up != this.control.up
+				|| update.down != this.control.down
+				|| update.left != this.control.left
+				|| update.right != this.control.right) {
+				this.control = update;
+				let binData = 0;
+				if (this.control.up) binData += 1;
+				if (this.control.down) binData += 2;
+				if (this.control.left) binData += 4;
+				if (this.control.right) binData += 8;
 
-			let buffer = new ArrayBuffer(2);
-			let view = new DataView(buffer);
-			view.setUint8(0, commandEnum.CTRLUPDATE);
-			view.setUint8(1, binData);
-			socket.send(buffer);
+				let buffer = new ArrayBuffer(2);
+				let view = new DataView(buffer);
+				view.setUint8(0, commandEnum.CTRLUPDATE);
+				view.setUint8(1, binData);
+				socket.send(buffer);
+			}
+		} catch(err) {
+			// Catch error where touch controls are used before game starts
+			// console.log(err);
 		}
 	}
 
