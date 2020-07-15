@@ -1,8 +1,4 @@
-const app = require('express')();
-const server = require('http').createServer(app);
 const util = require('util'); // For TextEncoder and TextDecoder
-
-// -----------------   New websocket stuff --------------------
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -212,36 +208,7 @@ function handleChatMessage(ws, dv) {
 	wss.broadcast(data);
 }
 
-// -------------- End new websocket stuff -------------------
-
-console.log('Server running...');
-
-// -------------------- Resource request handling --------------------
-app.get('/', (req, res) => {
-	res.sendFile(__dirname + '/client/index.html');
-});
-
-app.get('/canvas.js', (req, res) => {
-	res.sendFile(__dirname + '/client/canvas.js');
-});
-
-app.get('/chat-client.js', (req, res) => {
-	res.sendFile(__dirname + '/client/chat-client.js');
-});
-
-app.get('/leaderboard.js', (req, res) => {
-	res.sendFile(__dirname + '/client/leaderboard.js');
-});
-
-app.get('/app.js', (req, res) => {
-	res.sendFile(__dirname + '/client/app.js');
-});
-
-app.get('/main.css', (req, res) => {
-	res.sendFile(__dirname + '/client/main.css');
-});
-
-server.listen(process.env.PORT || 3000);
+console.log('Game server running...');
 
 // -------------------- Implementation --------------------
 const colors = [

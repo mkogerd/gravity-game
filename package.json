@@ -5,12 +5,15 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "concurrently --kill-others \"npm:game-server\" \"npm:client-server\"",
+    "client-server": "node client/server.js",
+    "game-server": "node game-server/server.js",
     "dev": "nodemon --exec npm start"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "concurrently": "^5.2.0",
     "express": "^4.16.4",
     "socket.io": "^2.2.0",
     "ws": "^6.1.2"
