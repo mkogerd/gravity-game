@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "concurrently --kill-others \"npm:game-server\" \"npm:client-server\"",
-    "client-server": "node client/server.js",
+    "client-server": "node web-client/server.js",
     "game-server": "node game-server/server.js",
     "dev": "nodemon --exec npm start"
   },
