@@ -1,12 +1,18 @@
 # gravity-game
 Multiplayer game implementing 2d gravity physics created with html canvas, javascript, and node.js.
 
-To host, clone the repository and while in the directory run `npm install` followed by `npm start` or `node server.js`. The default hosting port is *3000*, but this can be edited in **server.js**.
+To host, clone the repository and from the root directory run:  
+`npm install` - installs dependencies  
+`npm start` - starts both the client and game servers   
+
+**Default Ports**  
+client-server: `3000`  
+game-server: `8080`
 
 ### Features to add:
 - ~~Explain controls better.~~
 - ~~Add a way to restart after dying without refreshing page.~~
-- ~~Sleep server activity when no one is connected.~~
+- ~~Sleep server activity when no one is connected.~~git
 - Cleanup serverside code and break into node modules.
 - ~~Reduce update package size being sent out to reduce lag.~~
 - Allow instancing of game.
