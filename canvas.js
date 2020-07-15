@@ -255,6 +255,7 @@ class Canvas {
 	}
 
 	handleTouch(e) {
+		e.preventDefault();
 		try {
 			// Calculate pixel distance between player and touch event
 			const deltaX = e.touches[0].clientX - (this.player.x - this.frame.x);

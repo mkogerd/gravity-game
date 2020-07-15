@@ -11,6 +11,12 @@ body {
 	margin: 0;
 }
 
+input[type='text'],
+input[type='number'],
+textarea {
+	font-size: 20px;
+}
+
 .startMenu {
 	overflow: hidden;
 	position: fixed;
@@ -30,7 +36,7 @@ body {
 	grid-gap: 10px;
 	text-align: center;
 	display: grid;
-	grid-template-rows: 10% 10%;
+	grid-template-rows: auto auto;
 }
 
 #nameInput {
