@@ -1,6 +1,7 @@
 const util = require('util'); // For TextEncoder and TextDecoder
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
+const logger = require('./logger');
 
 // Incoming communications
 const commandList = ['startReq', 'controlInput', 'chatMessage'];
@@ -31,17 +32,16 @@ for (var i = 1; i <= 255; i++) {
 
 }
 
-
 wss.on('connection', function connection(ws) {
 	// Testing out error handling
 	ws.onerror = (evt) => {
-		console.log('An error had occured in our ws connection');
+		logger.error('An error occurred in our websocket connection');
 		return;
 	}
 
 	ws.binaryType = 'arraybuffer';
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
-	console.log(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected - ${new Date()}`);
+	logger.info(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected`);
 
 	// Send map initialization
 	ws.send(getInitData(ws));
@@ -68,7 +68,7 @@ wss.on('connection', function connection(ws) {
 		pidQueue.push(ws.id);
 		playerList[ws.id] = undefined;
 		particles = particles.filter(particle => particle.id != ws.id);
-		console.log(`(ID:${ws.id}) disconnected, only ${wss.clients.size} sockets connected`);
+		logger.info(`(ID:${ws.id}) disconnected, only ${wss.clients.size} sockets connected`);
 	});	
 });
 
@@ -131,27 +131,27 @@ function handleStartRequest(ws, dv) {
 	let name = dec.decode(binaryName);
 	name = (name == "") ? "default" : name;	// Add default name for blank names
 
+	// Clear out old instances of player
+	for(var i = 0; i < particles.length; i++) {
+		if (particles[i].id == ws.id) {
+			logger.info(`Removing player "${playerList[ws.id]}"`);
+			particles.splice(i, 1);
+			break;
+		}
+	}
+
 	// Update PID/name associations
 	playerList[ws.id] = name;
 	wss.broadcast(getAddNameMsg(ws.id, name));
-
-	// Clear out old instances of player
-	for(var i = 0; i < particles.length; i++) {
-	    if (particles[i].id == ws.id) {
-	        particles.splice(i, 1);
-	        break;
-	    }
-	}
 	
 	// Create new particle and hazard for player
-	playerName = name == "" ? "default" : name;
 	const color = Math.floor(Math.random() * colors.length);
 	ws.player = new Player(25, 25, 10, color, ws.id);
-	hazard = spawnHazard(ws.id, playerName, color);
+	hazard = spawnHazard(ws.id, name, color);
 
 	particles.push(ws.player);
 	particles.push(hazard);
-	console.log(`"${name}" joined session`);
+	logger.info(`"${name}" joined session`);
 
 	let buffer = new ArrayBuffer(1);
 	let view = new DataView(buffer);
@@ -204,7 +204,7 @@ function handleChatMessage(ws, dv) {
 	let message = new Uint8Array(dv.buffer, 1);
 	payload.set(message);
 
-	console.log(`${playerList[ws.id]} (ID:${ws.id}): ${new util.TextDecoder('utf-8').decode(message)}`);
+	logger.info(`[chat] ${playerList[ws.id]} (ID:${ws.id}): "${new util.TextDecoder('utf-8').decode(message)}"`);
 	wss.broadcast(data);
 }
 
@@ -223,7 +223,6 @@ const width = 1500;
 const height = 1100;
 var particles = [];
 const tick = 1000/60;	// 60fps
-const sockets = [];
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
 
