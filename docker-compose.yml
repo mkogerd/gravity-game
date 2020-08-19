@@ -1,0 +1,19 @@
+version: "2"
+services:
+  game-server:
+    build:
+      context: ./game-server
+      dockerfile: Dockerfile
+    image: game-server
+    container_name: game-server
+    ports:
+      - "8080:8080"
+
+  web-client:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+    image: web-client
+    container_name: web-client
+    ports:
+      - "3000:3000"
