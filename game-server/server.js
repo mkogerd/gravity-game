@@ -146,7 +146,7 @@ function handleStartRequest(ws, dv) {
 	
 	// Create new particle and hazard for player
 	const color = Math.floor(Math.random() * colors.length);
-	ws.player = new Player(25, 25, 10, color, ws.id);
+	ws.player = new Player(25, 25, 20, color, ws.id);
 	hazard = spawnHazard(ws.id, name, color);
 
 	particles.push(ws.player);
@@ -221,7 +221,7 @@ const colors = [
 
 const width = 1500;
 const height = 1100;
-var particles = [];
+const particles = [];
 const tick = 1000/60;	// 60fps
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
@@ -234,7 +234,7 @@ function init() {
 	// Create a bunch of random particles to interact with
 	for (let i = 0; i < 15; i++) {
 		const radius = 15;
-		const color = Math.floor(Math.random() * colors.length);;
+		const color = Math.floor(Math.random() * colors.length);
 		let x = Math.random() * (width - radius * 2) + radius;
 		let y = Math.random() * (height - radius * 2) + radius; 
 		
