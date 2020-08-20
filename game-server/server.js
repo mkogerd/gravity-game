@@ -32,7 +32,7 @@ for (var i = 1; i <= 255; i++) {
 
 }
 
-wss.on('connection', function connection(ws) {
+wss.on('connection', function connection(ws, req) {
 	// Testing out error handling
 	ws.onerror = (evt) => {
 		logger.error('An error occurred in our websocket connection');
@@ -41,7 +41,7 @@ wss.on('connection', function connection(ws) {
 
 	ws.binaryType = 'arraybuffer';
 	ws.id = pidQueue.shift();  // error can occur if array is empty - pid becomes undefined. then all particles get deleted on dc
-	logger.info(`(ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected`);
+	logger.info(`(${req.socket.remoteAddress}, ID:${ws.id}) connected, currently ${wss.clients.size} sockets connected`);
 
 	// Send map initialization
 	ws.send(getInitData(ws));
@@ -68,7 +68,7 @@ wss.on('connection', function connection(ws) {
 		pidQueue.push(ws.id);
 		playerList[ws.id] = undefined;
 		particles = particles.filter(particle => particle.id != ws.id);
-		logger.info(`(ID:${ws.id}) disconnected, only ${wss.clients.size} sockets connected`);
+		logger.info(`(${req.socket.remoteAddress}, ID:${ws.id}) disconnected, only ${wss.clients.size} sockets connected`);
 	});	
 });
 
