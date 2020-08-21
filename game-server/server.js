@@ -132,7 +132,7 @@ function handleStartRequest(ws, dv) {
 	name = (name == "") ? "default" : name;	// Add default name for blank names
 
 	// Clear out old instances of player
-	for(var i = 0; i < particles.length; i++) {
+	for(let i = 0; i < particles.length; i++) {
 		if (particles[i].id == ws.id) {
 			logger.info(`Removing player "${playerList[ws.id]}"`);
 			particles.splice(i, 1);
@@ -146,10 +146,11 @@ function handleStartRequest(ws, dv) {
 	
 	// Create new particle and hazard for player
 	const color = Math.floor(Math.random() * colors.length);
-	ws.player = new Player(25, 25, 20, color, ws.id);
-	hazard = spawnHazard(ws.id, name, color);
+	const player = spawnPlayer(ws.id, color);
+	const hazard = spawnHazard(ws.id, name, color);
+	ws.player = player;
 
-	particles.push(ws.player);
+	particles.push(player);
 	particles.push(hazard);
 	logger.info(`"${name}" joined session`);
 
@@ -221,7 +222,7 @@ const colors = [
 
 const width = 1500;
 const height = 1100;
-const particles = [];
+let particles = [];
 const tick = 1000/60;	// 60fps
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
@@ -235,17 +236,8 @@ function init() {
 	for (let i = 0; i < 15; i++) {
 		const radius = 15;
 		const color = Math.floor(Math.random() * colors.length);
-		let x = Math.random() * (width - radius * 2) + radius;
-		let y = Math.random() * (height - radius * 2) + radius; 
-		
-		for (let j = 0; j < particles.length; j++) {
-			if (distance(x, y, particles[j].x, particles[j].y) - radius * 2 < 0) {
-				x = Math.random() * (width - radius * 2) + radius;
-				y = Math.random() * (height - radius * 2) + radius;
-				j = -1;
-			}
-		}
-		particles.push(new Particle(x, y, radius, color));
+		const location = getRandomSpawnLocation(radius);
+		particles.push(new Particle(location.x, location.y, radius, color));
 	}
 
 	// TO DO: Put all of these interval functions into the update function
@@ -276,31 +268,45 @@ function update() {
 function spawnParticle() {
 	const radius = 15;
 	const color = Math.floor(Math.random() * colors.length);
-	let x = Math.random() * (width - radius * 2) + radius;
-	let y = Math.random() * (height - radius * 2) + radius; 
-	
-	for (let j = 0; j < particles.length; j++) {
-		if (distance(x, y, particles[j].x, particles[j].y) - radius * 2 < 0) {
-			x = Math.random() * (width - radius * 2) + radius;
-			y = Math.random() * (height - radius * 2) + radius;
-			j = -1;
-		}
-	}
-	return new Particle(x, y, radius, color);
+	const location = getRandomSpawnLocation(radius);
+
+	return new Particle(location.x, location.y, radius, color);
+}
+
+function spawnPlayer(socket_id, color) {
+	const radius = 20;
+	const location = getRandomSpawnLocation(radius);
+
+	return new Player(location.x, location.y, radius, color, socket_id);
 }
 
 function spawnHazard(id, name, color) {
 	const radius = 20;
-	let x = Math.random() * (width - radius * 2) + radius;
-	let y = Math.random() * (height - radius * 2) + radius; 
-	for (let j = 0; j < particles.length; j++) {
-		if (distance(x, y, particles[j].x, particles[j].y) - radius - particles[j].radius  < 0) {
-			x = Math.random() * (width - radius * 2) + radius;
-			y = Math.random() * (height - radius * 2) + radius;
-			j = -1;
+	const location = getRandomSpawnLocation(radius);
+
+	return new Hazard(location.x, location.y, radius, color, id, name);
+}
+
+function getRandomSpawnLocation(radius) {
+	// Keep generating starting locations until we find one that doesn't overlap with an existing particle
+	let x;
+	let y;
+	do {
+		x = Math.random() * (width - radius * 2) + radius;
+		y = Math.random() * (height - radius * 2) + radius;
+	} while (locationTouchesExistingParticle(x, y))
+
+	return {x, y}
+}
+
+function locationTouchesExistingParticle(x, y) {
+	for (let i = 0; i < particles.length; i++) {
+		if (distance(x, y, particles[i].x, particles[i].y) - (particles[i].radius * 2) < 0) {
+			return true;
 		}
 	}
-	return hazard = new Hazard(x, y, radius, color, id, name);
+
+	return false;
 }
 
 // -------------------- Entity objects --------------------
@@ -352,7 +358,7 @@ function Particle(x, y, radius, color, type) {
 function Player(x, y, radius, color, id) {
 	Particle.call(this, x, y, radius, color, typeEnum.PLAYER);
 	this.id = id;
-	this.mass = 1;
+	this.mass = 2;
 	this.velocity = {
 		x: 0,
 		y: 0
