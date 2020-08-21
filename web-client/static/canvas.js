@@ -19,6 +19,7 @@ class Canvas {
 		this.ctx = this.cvs.getContext('2d');
 		this.cvs.width = innerWidth;
 		this.cvs.height = innerHeight;
+		this.tick = 0;
 
 
 		// Canvas elements
@@ -89,6 +90,9 @@ class Canvas {
 
 	animate() {
 		requestAnimationFrame(this.animate.bind(this));
+		this.tick++;
+		this.tick = this.tick % 3000; // arbitrarily limiting this to 3000 to prevent it from growing unchecked
+
 		this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
 		this.drawBoard();
 
@@ -106,35 +110,65 @@ class Canvas {
 	drawParticle(particle) {
 		let c = this.ctx;
 		c.save();
-		c.beginPath();
-		c.arc(particle.x - this.frame.x, particle.y - this.frame.y, particle.radius, 0, Math.PI * 2,  false);
+		let screenX = particle.x - this.frame.x;
+		let screenY = particle.y - this.frame.y;
 
 		// Draw particles according to type
 		switch(particle.type) {
 			case typeEnum.PLAYER:
-			c.fillStyle = colors[particle.color];
-			c.strokeStyle = 'grey';
-			c.lineWidth = 5;
-			c.stroke();
-			break;
+				this.drawPlayer(screenX, screenY, particle.radius, particle.color);
+				break;
 
 			case typeEnum.HAZARD:
-			c.fillStyle = 'black';
-			c.strokeStyle = colors[particle.color];
-			c.lineWidth = 10;
-			c.stroke();
-			break;
+				this.drawHazard(screenX, screenY, particle.radius, particle.color);
+				break;
 
 			case typeEnum.PHOTON:
-			c.fillStyle = colors[particle.color];
-			break;
+				c.beginPath();
+				c.arc(screenX, screenY, particle.radius, 0, Math.PI * 2,  false);
+				c.fillStyle = colors[particle.color];
+				c.fill();
+				break;
 
 			default:
-			//console.log(this.colors[particle.color]);
-			c.fillStyle = colors[particle.color];
+				c.beginPath();
+				c.arc(screenX, screenY, particle.radius, 0, Math.PI * 2,  false);
+				c.fillStyle = colors[particle.color];
+				c.fill();
 		}
-		c.fill();
 		c.restore();
+	}
+
+	drawHazard(x, y, radius, color) {
+		let c = this.ctx;
+		c.beginPath();
+		c.arc(x, y, radius, 0, Math.PI * 2,  false);
+		c.shadowColor = 'black';
+		let tickCycle = 150;
+		let tick = (this.tick % tickCycle);
+		let pulseIntensity = (((tick < tickCycle/2) ? tick*2 : (tickCycle - tick)*2)/tickCycle);
+		let pulseRadius = 20;
+		c.shadowBlur = pulseIntensity * pulseRadius;
+		c.fillStyle = 'black';
+		c.strokeStyle = colors[color];
+		c.lineWidth = 5;
+		c.stroke();
+		c.fill();
+	}
+
+	drawPlayer(x, y, radius, color) {
+		let c = this.ctx;
+		c.beginPath();
+		c.arc(x, y, radius, 0, Math.PI * 2,  false);
+		c.fillStyle = colors[color];
+		c.strokeStyle = 'grey';
+		c.lineWidth = 5;
+		c.stroke();
+		c.fill();
+		c.beginPath();
+		c.arc(x, y, radius/4, 0, Math.PI * 2,  false);
+		c.fillStyle = 'grey';
+		c.fill();
 	}
 
 	// Draw tether between specified particles
@@ -146,7 +180,7 @@ class Canvas {
 		c.moveTo(particle1.x - this.frame.x, particle1.y - this.frame.y);
 		c.lineTo(particle2.x - this.frame.x, particle2.y - this.frame.y);
 		c.strokeStyle = colors[particle1.color];
-		c.globalAlpha = .2;
+		c.globalAlpha = .4;
 		c.lineWidth = 10;
 		c.stroke();
 		c.restore();

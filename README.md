@@ -18,9 +18,9 @@ game-server: `8080`
 - Allow instancing of game.
 - Maybe: Add a database to store user data.
 - Improve artwork/graphics.
-  - Make black holes easier to identify.
-  - Make tether easier to see.
-  - Make players easier to identify.
+  - ~~Make black holes easier to identify.~~
+  - ~~Make tether easier to see.~~
+  - ~~Make players easier to identify.~~
   - Allow players to see other players' tethers?
 - *Make the game fun.*
 
