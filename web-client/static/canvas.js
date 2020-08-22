@@ -7,9 +7,9 @@ const typeEnum = {
 const colors = [
 	'#2F2933',
 	'#01A2A6',
-	'#29D9C2',
+	'#A4243B',
 	'#BDF271',
-	'#FFFFA6'
+	'#BD632F'
 ];
 
 class Canvas {
