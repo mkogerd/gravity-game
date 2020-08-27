@@ -92,14 +92,13 @@ socket.addEventListener('initialize', (e) => {
 	socket.id = dv.getUint8(0);
 	let mapWidth = dv.getUint16(1);
 	let mapHeight = dv.getUint16(3);
+	let viewWidth = dv.getInt16(5);
+	let viewHeight = dv.getUint16(7);
 
 	// Extract game state from message
-	let particleList = decodeParticleList(new DataView(dv.buffer, 6));
+	let particleList = decodeParticleList(new DataView(dv.buffer, 10));
 
-	//console.log('width: ' + mapWidth + ', height: ' + mapHeight);
-	//console.log(particleList);
-	//console.log('PID: ' + socket.id);
-	canvas = new Canvas(particleList, mapWidth, mapHeight);
+	canvas = new Canvas(particleList, mapWidth, mapHeight, viewWidth, viewHeight);
 	canvas.animate();
 });
 

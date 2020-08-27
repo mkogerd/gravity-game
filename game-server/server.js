@@ -83,7 +83,7 @@ wss.broadcast = function broadcast(data) {
 
 function getInitData(ws) {
     // Populate new client session with game entities and map dimensions
-	let buffer = new ArrayBuffer(6 + particles.length * 9);
+	let buffer = new ArrayBuffer(10 + particles.length * 9);
 	let view = new DataView(buffer);
 	view.setUint8(0, 0);
 	view.setUint8(1, ws.id);
@@ -91,15 +91,17 @@ function getInitData(ws) {
 	// Fill buffer with map dimensions
 	view.setUint16(2, width);
 	view.setUint16(4, height);
+	view.setUint16(6, viewWidth);
+	view.setUint16(8, viewHeight);
 	
 	// Fill in particle data
 	for (let i = 0; i < particles.length; i++) {
-		view.setUint8(6 + i*9, particles[i].id);	// ID
-		view.setUint8(7 + i*9, particles[i].type);	// type
-		view.setUint8(8 + i*9, particles[i].color);	// Color
-		view.setUint16(9 + i*9, Math.floor(particles[i].x));	// x
-		view.setUint16(11 + i*9, Math.floor(particles[i].y));	// y
-		view.setUint16(13 + i*9, Math.floor(particles[i].radius));	// radius
+		view.setUint8(10 + i*9, particles[i].id);	// ID
+		view.setUint8(11 + i*9, particles[i].type);	// type
+		view.setUint8(12 + i*9, particles[i].color);	// Color
+		view.setUint16(13 + i*9, Math.floor(particles[i].x));	// x
+		view.setUint16(15 + i*9, Math.floor(particles[i].y));	// y
+		view.setUint16(17 + i*9, Math.floor(particles[i].radius));	// radius
 	}
 
 	return buffer;
@@ -220,8 +222,10 @@ const colors = [
 	'#FFFFA6'
 ];
 
-const width = 1500;
-const height = 1100;
+const width = 3000;
+const height = 2200;
+const viewWidth = 1920;
+const viewHeight = 1080;
 let particles = [];
 const tick = 1000/60;	// 60fps
 const friction = 0.99;

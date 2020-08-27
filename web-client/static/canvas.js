@@ -13,12 +13,15 @@ const colors = [
 ];
 
 class Canvas {
-	constructor(particleList, mapWidth, mapHeight) {
+	constructor(particleList, mapWidth, mapHeight, viewWidth, viewHeight) {
 		// NOTE: The canvas element must have a tabindex set to allow focus (and key events)
 		this.cvs = document.getElementById("cvs");
 		this.ctx = this.cvs.getContext('2d');
 		this.cvs.width = innerWidth;
 		this.cvs.height = innerHeight;
+		this.viewWidth = viewWidth;
+		this.viewHeight = viewHeight;
+		this.updateScale();
 		this.tick = 0;
 
 
@@ -56,6 +59,8 @@ class Canvas {
 
 	update(particleList, trackPlayer) {
 		this.particles = particleList;
+		let scaledWidth = (innerWidth/this.scale);
+		let scaledHeight = (innerHeight/this.scale);
 
 		if(trackPlayer) {
 			this.player = this.particles.find((element) => {
@@ -66,24 +71,24 @@ class Canvas {
 			});
 
 			// Keep camera centered on player
-			this.frame.x = this.player.x - innerWidth/2;
-			this.frame.y = this.player.y - innerHeight/2;
+			this.frame.x = this.player.x - scaledWidth/2;
+			this.frame.y = this.player.y - scaledHeight/2;
 
 			// Special camera work for map borders
-			if(innerWidth > this.map.width) {
+			if(scaledWidth > this.map.width) {
 				this.frame.x = 0;
-			} else if (this.player.x < innerWidth/2) {
+			} else if (this.player.x < scaledWidth/2) {
 				this.frame.x = 0;
-			} else if (this.player.x > this.map.width - innerWidth/2) {
-				this.frame.x = this.map.width - innerWidth;
+			} else if (this.player.x > this.map.width - scaledWidth/2) {
+				this.frame.x = this.map.width - scaledWidth;
 			}
 
-			if(innerHeight > this.map.height) {
+			if(scaledHeight > this.map.height) {
 				this.frame.y = 0;
-			} else if (this.player.y < innerHeight/2) {
+			} else if (this.player.y < scaledHeight/2) {
 				this.frame.y = 0;
-			} else if (this.player.y > this.map.height - innerHeight/2) {
-				this.frame.y = this.map.height - innerHeight;
+			} else if (this.player.y > this.map.height - scaledHeight/2) {
+				this.frame.y = this.map.height - scaledHeight;
 			}
 		}
 	}
@@ -93,8 +98,8 @@ class Canvas {
 		this.tick++;
 		this.tick = this.tick % 3000; // arbitrarily limiting this to 3000 to prevent it from growing unchecked
 
-		this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-		this.drawBoard();
+		this.clearCanvas();
+		this.drawGrid();
 
 		// Connect player with their hazard
 		if(this.hazard && this.player)
@@ -103,6 +108,13 @@ class Canvas {
 		// Draw all entities onto map
 		if (this.particles)
 			this.particles.forEach(this.drawParticle.bind(this));
+	}
+
+	clearCanvas() {
+		this.ctx.save();
+		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+		this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+		this.ctx.restore();
 	}
 
 	// -------------------- Drawing Functions --------------------
@@ -187,18 +199,19 @@ class Canvas {
 	}
 
 	// Draw the background gridlines
-	drawBoard() {
+	drawGrid() {
 		this.ctx.beginPath();
+
 		// Draw vertical gridlines
-		for (var x = -this.frame.x; x <= this.map.width - this.frame.x; x += 40) {
-		    this.ctx.moveTo(0.5 + x, -this.frame.y);
-		    this.ctx.lineTo(0.5 + x, this.map.height - this.frame.y);
+		for (let x = -this.frame.x; x <= this.map.width - this.frame.x; x += 100) {
+			this.ctx.moveTo(0.5 + x, -this.frame.y);
+			this.ctx.lineTo(0.5 + x, this.map.height - this.frame.y);
 		}
 
 		// Draw horizontal gridlines
-		for (var y = -this.frame.y; y <= this.map.height - this.frame.y; y += 40) {
-		    this.ctx.moveTo(-this.frame.x, 0.5 + y);
-		    this.ctx.lineTo(this.map.width - this.frame.x, 0.5 + y);
+		for (let y = -this.frame.y; y <= this.map.height - this.frame.y; y += 100) {
+			this.ctx.moveTo(-this.frame.x, 0.5 + y);
+			this.ctx.lineTo(this.map.width - this.frame.x, 0.5 + y);
 		}
 
 		this.ctx.strokeStyle = "black";
@@ -372,5 +385,19 @@ class Canvas {
 	handleResize() {
 		this.cvs.width = innerWidth;
 		this.cvs.height = innerHeight;
+		this.updateScale();
+	}
+
+	updateScale() {
+		let windowRatio = innerWidth/innerHeight;
+		let viewAspectRatio = this.viewWidth/this.viewHeight;
+		if (windowRatio > viewAspectRatio) {
+			this.scale = innerWidth/this.viewWidth;
+		} else {
+			this.scale = innerHeight/this.viewHeight;
+		}
+
+		this.ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
+		console.log(this.scale);
 	}
 }
