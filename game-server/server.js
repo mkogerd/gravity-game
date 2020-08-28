@@ -163,20 +163,48 @@ function handleStartRequest(ws, dv) {
 }
 
 function handleUpdate() {
-	let buffer = new ArrayBuffer(1 + particles.length * 9);
-	let view = new DataView(buffer);
-	view.setUint8(0, 3);
+	wss.clients.forEach((client) => {
+		let player = particles.find(p => p.id == client.id && p.type == 1);
+		if (player) {
+			// Only send the nearby particles so the client doesn't have to know about offscreen entities
+			// Account for how camera behaves near screen edges
+			let screenCenter = {
+				x: Math.min(width - viewWidth / 2, Math.max(viewWidth / 2, player.x)),
+				y: Math.min(height - viewHeight / 2, Math.max(viewHeight / 2, player.y))
+			}
 
-	// Fill in particle data
-	for (let i = 0; i < particles.length; i++) {
-		view.setUint8(1 + i*9, particles[i].id);	// id
-		view.setUint8(2 + i*9, particles[i].type);	// type
-		view.setUint8(3 + i*9, particles[i].color);	// Color
-		view.setUint16(4 + i*9, Math.floor(particles[i].x));	// x
-		view.setUint16(6 + i*9, Math.floor(particles[i].y));	// y
-		view.setUint16(8 + i*9, Math.floor(particles[i].radius));	// radius
+			let nearbyParticles = particles.filter(p => (
+				particleIsOnScreen(p, screenCenter)
+				|| p.id == client.id
+			));
+
+			let buffer = new ArrayBuffer(1 + nearbyParticles.length * 9);
+			let view = new DataView(buffer);
+			view.setUint8(0, 3);
+
+			// Fill in particle data
+			for (let i = 0; i < nearbyParticles.length; i++) {
+				view.setUint8(1 + i * 9, nearbyParticles[i].id);	// id
+				view.setUint8(2 + i * 9, nearbyParticles[i].type);	// type
+				view.setUint8(3 + i * 9, nearbyParticles[i].color);	// Color
+				view.setUint16(4 + i * 9, Math.floor(nearbyParticles[i].x));	// x
+				view.setUint16(6 + i * 9, Math.floor(nearbyParticles[i].y));	// y
+				view.setUint16(8 + i * 9, Math.floor(nearbyParticles[i].radius));	// radius
+			}
+			client.send(buffer);
+		}
+	});
+}
+
+function particleIsOnScreen(particle, screenCenter) {
+	let particleEdge = {
+		x: (particle.x < screenCenter.x) ? particle.x + particle.radius : particle.x - particle.radius,
+		y: (particle.y < screenCenter.y) ? particle.y + particle.radius : particle.y - particle.radius
 	}
-	wss.broadcast(buffer);
+	return (
+		Math.abs(screenCenter.x - particleEdge.x) < viewWidth / 2
+		&& Math.abs(screenCenter.y - particleEdge.y) < viewHeight / 2
+	)
 }
 
 function handleControl(ws, dv) {  // This needs to be reworked
