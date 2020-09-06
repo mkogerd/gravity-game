@@ -130,7 +130,7 @@ function handleStartRequest(ws, dv) {
 	// Get name from request
 	let dec = new util.TextDecoder('utf-8');
 	let binaryName = new DataView(dv.buffer, dv.byteOffset +1);
-	let name = dec.decode(binaryName);
+	let name = dec.decode(binaryName).substr(0,16); // Only accept first 16 chars
 	name = (name == "") ? "default" : name;	// Add default name for blank names
 
 	// Clear out old instances of player
