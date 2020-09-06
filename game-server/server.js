@@ -192,6 +192,22 @@ function handleUpdate() {
 				view.setUint16(8 + i * 9, Math.floor(nearbyParticles[i].radius));	// radius
 			}
 			client.send(buffer);
+		} else {
+			// Send all particles
+			let buffer = new ArrayBuffer(1 + particles.length * 9);
+			let view = new DataView(buffer);
+			view.setUint8(0, 3);
+
+			// Fill in particle data
+			for (let i = 0; i < particles.length; i++) {
+				view.setUint8(1 + i*9, particles[i].id);	// id
+				view.setUint8(2 + i*9, particles[i].type);	// type
+				view.setUint8(3 + i*9, particles[i].color);	// Color
+				view.setUint16(4 + i*9, Math.floor(particles[i].x));	// x
+				view.setUint16(6 + i*9, Math.floor(particles[i].y));	// y
+				view.setUint16(8 + i*9, Math.floor(particles[i].radius));	// radius
+			}
+			client.send(buffer);
 		}
 	});
 }

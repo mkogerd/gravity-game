@@ -398,6 +398,5 @@ class Canvas {
 		}
 
 		this.ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
-		console.log(this.scale);
 	}
 }
