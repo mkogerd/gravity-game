@@ -258,7 +258,8 @@ let particles = [];
 const tick = 1000/60;	// 60fps
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
-const particlesPerPlayer = 35;
+const particlesPerPlayer = 30;
+const startingParticles = 35;
 
 init();
 
@@ -266,7 +267,7 @@ function init() {
 	console.log('Initializing...');
 
 	// Create a bunch of random particles to interact with
-	for (let i = 0; i < 15; i++) {
+	for (let i = 0; i < startingParticles; i++) {
 		const radius = 15;
 		const color = Math.floor(Math.random() * colors.length);
 		const location = getRandomSpawnLocation(radius);
@@ -279,7 +280,7 @@ function init() {
 	// Add a new feeder particle every second if a player is in the game
 	setInterval(() => {
 		const players = particles.filter(p => p.type == typeEnum.PLAYER);
-		const maxParticles = players.length * particlesPerPlayer;
+		const maxParticles = players.length * particlesPerPlayer + startingParticles;
 		if (players.length > 0 && particles.length < maxParticles)
 				particles.push(spawnParticle())
 	}, tick*60);
