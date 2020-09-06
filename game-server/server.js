@@ -258,6 +258,7 @@ let particles = [];
 const tick = 1000/60;	// 60fps
 const friction = 0.99;
 const G = 9.8;	// 9.8 pixels per second^2
+const particlesPerPlayer = 35;
 
 init();
 
@@ -277,7 +278,9 @@ function init() {
 	setInterval(update, tick);
 	// Add a new feeder particle every second if a player is in the game
 	setInterval(() => {
-		if (particles.find((particle) => { return particle.type == typeEnum.PLAYER }) != null)
+		const players = particles.filter(p => p.type == typeEnum.PLAYER);
+		const maxParticles = players.length * particlesPerPlayer;
+		if (players.length > 0 && particles.length < maxParticles)
 				particles.push(spawnParticle())
 	}, tick*60);
 	// Emit photons every second
